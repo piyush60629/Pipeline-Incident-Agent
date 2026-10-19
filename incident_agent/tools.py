@@ -15,7 +15,6 @@ from langchain_core.tools import tool
 from . import data_store
 from .config import MAX_TOOL_OUTPUT_CHARS
 from .knowledge import Source, default_knowledge_base
-from .schemas import DiagnosisReport
 
 
 def _compact(payload: Any) -> str:
@@ -112,13 +111,6 @@ def search_knowledge(query: str, source: Source = "all") -> str:
     if not results:
         return _compact({"results": [], "note": "No matching knowledge base sections."})
     return _compact({"results": [{"citation": s.citation, "text": s.text[:650]} for s, _ in results]})
-
-
-@tool("submit_diagnosis", args_schema=DiagnosisReport)
-def submit_diagnosis(**report: Any) -> str:
-    """Submit the final diagnosis once the evidence supports a root cause. Call exactly once, as the last step."""
-
-    return "Diagnosis received."
 
 
 INVESTIGATION_TOOLS = [

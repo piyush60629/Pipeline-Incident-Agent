@@ -79,3 +79,37 @@ def coerce_report(raw: dict[str, Any] | None) -> DiagnosisReport:
         sources=as_list(raw.get("sources")),
         incident_summary=str(raw.get("incident_summary") or raw.get("root_cause") or "").strip(),
     )
+
+
+def report_field_guide() -> str:
+    """Field-by-field instructions for the report step, generated from the schema above."""
+
+    lines = []
+    for name, field in DiagnosisReport.model_fields.items():
+        allowed = ""
+        if name == "category":
+            allowed = f" One of: {', '.join(CATEGORIES)}."
+        elif name == "recommended_action":
+            allowed = f" One of: {', '.join(ACTIONS)}."
+        elif name == "confidence":
+            allowed = " One of: high, medium, low."
+        kind = "list of strings" if name in ("evidence", "fix_steps", "prevention", "sources") else "string"
+        lines.append(f'- "{name}" ({kind}): {field.description}{allowed}')
+    return "\n".join(lines)
+
+
+def extract_json_object(text: str) -> dict[str, Any] | None:
+    """Return the last JSON object in the text that looks like a report (tolerates fences or prose)."""
+
+    import json
+    import re
+
+    decoder, found = json.JSONDecoder(), None
+    for match in re.finditer(r"\{", text or ""):
+        try:
+            candidate, _ = decoder.raw_decode(text, match.start())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(candidate, dict) and ("root_cause" in candidate or "category" in candidate):
+            found = candidate
+    return found

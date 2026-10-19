@@ -3,7 +3,7 @@ import csv
 import json
 
 import pytest
-from fake_llm import ScriptedChatModel, call, tool_round
+from fake_llm import ScriptedChatModel, call, final_text, report_json, tool_round
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 
 import evaluate
@@ -45,11 +45,11 @@ def _agent_for(case_ids):
     for case_id in case_ids:
         case = cases[case_id]
         responses.append(tool_round(*[call(t, **_args(t, case)) for t in ["get_pipeline_run", *case["expected_tools"]]]))
-        responses.append(tool_round(call(
-            "submit_diagnosis", category=case["expected_category"], root_cause=case["reference_root_cause"],
-            confidence="high", evidence=["e"], fix_steps=["f"], recommended_action=case["acceptable_actions"][0],
-            incident_summary="s",
-        )))
+        responses.append(final_text())
+        responses.append(report_json(
+            category=case["expected_category"], root_cause=case["reference_root_cause"], confidence="high",
+            evidence=["e"], fix_steps=["f"], recommended_action=case["acceptable_actions"][0], incident_summary="s",
+        ))
     return IncidentAgent(ScriptedChatModel(responses=responses, seen=[], tool_choices=[]))
 
 

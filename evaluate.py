@@ -10,7 +10,7 @@ Metrics
   action accuracy     recommended action is one of the acceptable actions (rerun vs fix vs escalate)
   tool recall         share of the expected evidence tools the agent actually called
   root-cause score    LLM judge (a different model family) compares the root cause with the reference: 1 / 0.5 / 0
-  avg tool calls, avg seconds, forced-submit rate
+  avg tool calls, avg seconds, share of runs stopped by the step budget
 
 Results: eval/results/latest.json, latest.md and history.csv (one row per run).
 """
@@ -30,7 +30,7 @@ from typing import Any, Sequence
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from incident_agent import create_agent
-from incident_agent.config import GROQ_JUDGE_MODEL, default_agent_model, env, resolve_provider
+from incident_agent.config import GROQ_JUDGE_MODEL, MAX_TOOL_ROUNDS, default_agent_model, env, resolve_provider
 from incident_agent.llm import make_chat_model
 
 ROOT = Path(__file__).resolve().parent
@@ -41,7 +41,7 @@ MAX_CONSECUTIVE_ERRORS = 3
 HISTORY_FIELDS = [
     "timestamp", "label", "provider", "agent_model", "judge_model", "cases", "errors", "completion_rate",
     "category_accuracy", "action_accuracy", "tool_recall", "root_cause_score", "avg_tool_calls", "avg_seconds",
-    "forced_submit_rate",
+    "budget_reached_rate",
 ]
 
 JUDGE_PROMPT = """You grade an incident-diagnosis agent. Compare the AGENT ROOT CAUSE with the REFERENCE ROOT CAUSE.
@@ -109,7 +109,7 @@ def score_case(case: dict, outcome: dict) -> dict:
         "tool_recall": round(len(called & expected) / len(expected), 3) if expected else 1.0,
         "tools_called": outcome.get("tools_called", []),
         "tool_calls": len(outcome.get("tools_called", [])),
-        "forced_submit": bool(outcome.get("forced_submit")),
+        "budget_reached": bool(outcome.get("budget_reached")),
         "seconds": outcome.get("seconds"),
         "root_cause": report.get("root_cause"),
         "root_cause_score": None,
@@ -135,7 +135,7 @@ def aggregate(rows: list[dict]) -> dict:
         "root_cause_score": _mean(judged),
         "avg_tool_calls": _mean([float(r["tool_calls"]) for r in ok]),
         "avg_seconds": _mean([float(r["seconds"] or 0) for r in ok]),
-        "forced_submit_rate": _mean([1.0 if r["forced_submit"] else 0.0 for r in ok]),
+        "budget_reached_rate": _mean([1.0 if r["budget_reached"] else 0.0 for r in ok]),
     }
 
 
@@ -159,7 +159,7 @@ def render_markdown(summary: dict, rows: list[dict], config: dict) -> str:
         f"| Root-cause score (LLM judge) | {_pct(summary['root_cause_score'])} |",
         f"| Avg tool calls per incident | {summary['avg_tool_calls'] if summary['avg_tool_calls'] is not None else 'n/a'} |",
         f"| Avg seconds per incident | {summary['avg_seconds'] if summary['avg_seconds'] is not None else 'n/a'} |",
-        f"| Forced to submit (budget or no tool call) | {_pct(summary['forced_submit_rate'])} |",
+        f"| Stopped by the {MAX_TOOL_ROUNDS}-round step budget | {_pct(summary['budget_reached_rate'])} |",
         "",
         "## Per-incident results",
         "",

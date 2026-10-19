@@ -101,8 +101,8 @@ def show_event(event: dict) -> None:
                 st.json(json.loads(event["content"]))
             except (json.JSONDecodeError, TypeError):
                 st.code(event["content"])
-    elif event["type"] == "forced_submit":
-        st.caption("Investigation budget reached; asking the agent for its diagnosis.")
+    elif event["type"] == "budget_reached":
+        st.caption("Step budget reached; writing the report from the evidence gathered so far.")
 
 
 def show_report(report: dict) -> None:
