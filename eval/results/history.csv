@@ -1,3 +1,4 @@
 timestamp,label,provider,agent_model,judge_model,cases,errors,completion_rate,category_accuracy,action_accuracy,tool_recall,root_cause_score,avg_tool_calls,avg_seconds,forced_submit_rate
 2026-10-19 11:16 UTC,baseline,groq,openai/gpt-oss-120b,qwen/qwen3.8-27b,12,1,1.0,0.8182,0.9091,0.9545,0.8636,2.5455,21.6091,0.8182
 2026-10-19 11:28 UTC,v2-prompt-categories,groq,openai/gpt-oss-120b,qwen/qwen3.8-27b,12,3,1.0,0.8889,1.0,0.9444,0.8889,3.2222,35.6111,1.0
+2026-10-19 11:37 UTC,smoke-20b-v3,groq,openai/gpt-oss-20b,qwen/qwen3.8-27b,3,0,1.0,1.0,0.3333,1.0,1.0,2.6667,23.3,0.0
