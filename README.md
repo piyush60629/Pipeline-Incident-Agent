@@ -15,7 +15,7 @@ When a pipeline fails at 2 AM, the on-call engineer has to read the error, open 
 1. **Reads the failed run** (pipeline, activity, error code, linked services, upstream run).
 2. **Chooses the evidence to collect** with tools: connection and credential status, run history, source schemas, Databricks job metrics, landing-zone files. It can call several tools in one round and follow leads, for example from a failed Gold pipeline to the upstream Silver run and then to that job's Spark metrics.
 3. **Searches runbooks and past incidents** for the fix procedure.
-4. **Submits a structured diagnosis**: category, root cause, confidence, evidence, fix steps, prevention, sources and a ticket-ready summary.
+4. **Writes a structured diagnosis**: category, root cause, confidence, evidence, fix steps, prevention, sources and a ticket-ready summary, validated against a Pydantic schema.
 5. **Asks before acting**: if it recommends a rerun, the graph pauses (LangGraph `interrupt`) until a person approves or rejects. The model itself has no tool that can change anything.
 
 ## How it works
@@ -25,11 +25,9 @@ flowchart TD
     start([Failed run or error message]) --> investigate
     investigate["investigate<br/>LLM with 7 read-only tools"] -->|tool calls| tools["tools<br/>ToolNode, runs calls in parallel"]
     tools --> investigate
-    investigate -->|submit_diagnosis| finalize["finalize<br/>validate DiagnosisReport"]
-    investigate -->|no tool call or 6 rounds used| force["force_submit<br/>model must submit"]
-    force --> finalize
-    finalize -->|recommended action = rerun| approval{{"approval<br/>human-in-the-loop interrupt"}}
-    finalize -->|fix first / escalate| done([Report])
+    investigate -->|"done, or 6 rounds used"| report["report<br/>transcript → JSON → Pydantic DiagnosisReport<br/>(one retry if invalid)"]
+    report -->|recommended action = rerun| approval{{"approval<br/>human-in-the-loop interrupt"}}
+    report -->|fix first / escalate| done([Report])
     approval -->|approved| rerun["rerun<br/>simulated ADF createRun"] --> done
     approval -->|rejected| done
 ```
@@ -54,36 +52,36 @@ The agent is evaluated on all 12 incidents (`eval/cases.json`). Each case has th
 | Recommended action correct | Rerun vs fix first vs escalate is appropriate |
 | Evidence tool recall | Share of the required evidence tools the agent actually called |
 | Root-cause score | An LLM judge from a different model family (Qwen 3.8) compares the root cause with the reference: 1 / 0.5 / 0 |
-| Tool calls, seconds, forced-submit rate | Efficiency and how often the agent needed to be stopped |
+| Tool calls, seconds, step-budget rate | Efficiency, and how often the agent hit its 6-round limit |
 
 <!-- EVAL_RESULTS_START -->
 **Latest results**
 
-- Run: 2026-10-19 11:16 UTC · 12 incidents · errors: 1  
+- Run: 2026-10-19 11:28 UTC · 12 incidents · errors: 3  
 - Agent: `openai/gpt-oss-120b` via groq · judge: `qwen/qwen3.8-27b`
 
 | Metric | Score |
 |---|---|
 | Diagnosis completed | 100.0% |
-| Category accuracy | 81.8% |
-| Recommended action correct | 90.9% |
-| Evidence tool recall | 95.5% |
-| Root-cause score (LLM judge) | 86.4% |
-| Avg tool calls per incident | 2.5455 |
-| Avg seconds per incident | 21.6091 |
-| Forced to submit (budget or no tool call) | 81.8% |
+| Category accuracy | 88.9% |
+| Recommended action correct | 100.0% |
+| Evidence tool recall | 94.4% |
+| Root-cause score (LLM judge) | 88.9% |
+| Avg tool calls per incident | 3.2222 |
+| Avg seconds per incident | 35.6111 |
+| Forced to submit (budget or no tool call) | 100.0% |
 
 Per-incident results: `eval/results/latest.md`.
 <!-- EVAL_RESULTS_END -->
 
 ## Tech stack
 
-- **Agent orchestration:** LangGraph `StateGraph` with a tool loop, conditional routing, a step budget, `interrupt()` for approval and an in-memory checkpointer
+- **Agent orchestration:** LangGraph `StateGraph` with a ReAct tool loop, conditional routing, a step budget, a separate report step, `interrupt()` for approval and an in-memory checkpointer
 - **LLMs:** OpenAI gpt-oss-120b on Groq (agent), Qwen 3.8 27B on Groq (evaluation judge); Gemini as an alternative provider
 - **Retrieval:** BM25 keyword search plus Gemini embeddings, merged with Reciprocal Rank Fusion
-- **Structured output:** Pydantic `DiagnosisReport`, submitted through a tool call
+- **Structured output:** Pydantic `DiagnosisReport` extracted as JSON from the investigation transcript, with lenient coercion and a retry
 - **UI:** Streamlit, showing each investigation step live; CLI for the terminal
-- **Quality:** 29 offline tests with a scripted model (no API key needed) and GitHub Actions for tests and evaluation
+- **Quality:** 36 offline tests with a scripted model (no API key needed) and GitHub Actions for tests and evaluation
 
 ## Run it
 
@@ -115,8 +113,8 @@ Add `GROQ_API_KEY` (and optionally `GEMINI_API_KEY`) under **Settings → Secret
 
 ```text
 incident_agent/
-  graph.py        LangGraph state machine, approval interrupt, IncidentAgent wrapper (stream / resume / diagnose)
-  tools.py        the 7 read-only tools + submit_diagnosis
+  graph.py        LangGraph state machine (investigate → report → approval), IncidentAgent wrapper
+  tools.py        the 7 read-only tools
   knowledge.py    runbook and incident search (BM25 + optional Gemini embeddings, RRF)
   schemas.py      DiagnosisReport (Pydantic) and lenient parsing of model output
   data_store.py   access to the synthetic monitoring data; simulated rerun
@@ -134,9 +132,9 @@ tests/            offline tests with a scripted chat model
 
 ## Design decisions
 
-- **Explicit graph instead of a prebuilt agent:** the step budget, forced submission, structured final answer and approval step are all visible nodes and edges that can be tested one by one.
+- **Explicit graph instead of a prebuilt agent:** the step budget, the report step and the approval step are visible nodes and edges that can be tested one by one.
 - **The model cannot change anything:** all tools are read-only. The only write action (rerun) sits behind an `interrupt()` that needs a human decision, which is how production agents should handle side effects.
-- **Final answer as a tool call:** `submit_diagnosis` uses the report schema as its arguments, so the model ends the loop and returns structured output in one call instead of a separate formatting step.
+- **Investigate, then report (changed after evaluation):** the first version ended the loop with a `submit_diagnosis` tool whose arguments were the report schema. In evaluation, gpt-oss on Groq almost never called it on its own, and forcing the call caused 3 of 12 runs to fail with provider 400 errors (strict validation of a large tool schema). The agent now investigates freely and a separate step turns a plain-text transcript of the investigation into JSON, validated by Pydantic with lenient coercion and one retry. Malformed tool calls during the investigation are retried once with a nudge.
 - **Compact tool outputs:** every round resends the conversation, so tool results are trimmed JSON. This keeps a full investigation inside free-tier token limits.
 - **Hybrid search:** error codes like `AADSTS7000222` need exact keyword matching; paraphrased symptoms need embeddings. The knowledge base is small, so an in-memory index is enough.
 - **Different judge family:** the root-cause judge (Qwen) is a different model from the agent (gpt-oss), so the agent is not grading its own work.

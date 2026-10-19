@@ -31,16 +31,23 @@ ACTIONS: tuple[str, ...] = get_args(Action)
 class DiagnosisReport(BaseModel):
     """Final diagnosis of a failed pipeline run."""
 
-    category: Category = Field(description="Failure category. Use 'unknown' only if the evidence is insufficient.")
+    category: Category = Field(
+        description="Failure category of THIS run. Rules: a run that failed because an upstream pipeline failed is "
+        "'upstream_dependency' (even if the upstream failure was out of memory); a failed data quality check is "
+        "'data_quality' (even if a source change caused it); 'schema_drift' is only for added, removed or renamed "
+        "columns that break the load; 'permission' = authenticated but not allowed (403); 'authentication' = "
+        "credentials rejected or expired; 'unknown' only if the evidence is insufficient."
+    )
     root_cause: str = Field(description="One or two sentences: what actually caused the failure, based on tool evidence.")
     confidence: Confidence = Field(description="high = confirmed by tool evidence; medium = likely; low = guess.")
     evidence: list[str] = Field(description="2-5 short facts from tool results that support the root cause.")
     fix_steps: list[str] = Field(description="Ordered steps to resolve the failure, following the runbook where one applies.")
     prevention: list[str] = Field(default_factory=list, description="1-3 steps that stop this happening again.")
     recommended_action: Action = Field(
-        description="'rerun' = safe to rerun now with no change (transient or already resolved); "
-        "'fix_then_rerun' = something must be fixed first; 'escalate' = another team must act "
-        "(access, quotas, source data owners); 'no_action' = nothing to do."
+        description="'rerun' = safe to rerun now with no change (transient error, or the cause is already resolved); "
+        "'fix_then_rerun' = the data team can fix it, then rerun; 'escalate' = only another team can fix or approve "
+        "it (IAM role assignments, Snowflake quotas / resource monitors, source data owners deciding a rule); "
+        "'no_action' = nothing to do."
     )
     sources: list[str] = Field(default_factory=list, description="Runbook / incident citations used.")
     incident_summary: str = Field(description="Three to four sentences for the incident ticket: impact, cause, next step.")
@@ -72,3 +79,37 @@ def coerce_report(raw: dict[str, Any] | None) -> DiagnosisReport:
         sources=as_list(raw.get("sources")),
         incident_summary=str(raw.get("incident_summary") or raw.get("root_cause") or "").strip(),
     )
+
+
+def report_field_guide() -> str:
+    """Field-by-field instructions for the report step, generated from the schema above."""
+
+    lines = []
+    for name, field in DiagnosisReport.model_fields.items():
+        allowed = ""
+        if name == "category":
+            allowed = f" One of: {', '.join(CATEGORIES)}."
+        elif name == "recommended_action":
+            allowed = f" One of: {', '.join(ACTIONS)}."
+        elif name == "confidence":
+            allowed = " One of: high, medium, low."
+        kind = "list of strings" if name in ("evidence", "fix_steps", "prevention", "sources") else "string"
+        lines.append(f'- "{name}" ({kind}): {field.description}{allowed}')
+    return "\n".join(lines)
+
+
+def extract_json_object(text: str) -> dict[str, Any] | None:
+    """Return the last JSON object in the text that looks like a report (tolerates fences or prose)."""
+
+    import json
+    import re
+
+    decoder, found = json.JSONDecoder(), None
+    for match in re.finditer(r"\{", text or ""):
+        try:
+            candidate, _ = decoder.raw_decode(text, match.start())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(candidate, dict) and ("root_cause" in candidate or "category" in candidate):
+            found = candidate
+    return found

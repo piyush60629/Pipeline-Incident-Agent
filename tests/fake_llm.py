@@ -21,7 +21,7 @@ def tool_round(*calls: dict, content: str = "") -> AIMessage:
 
 
 class ScriptedChatModel(BaseChatModel):
-    responses: list[AIMessage]
+    responses: list[Any]
     seen: list[list] = []
     tool_choices: list[Any] = []
 
@@ -38,4 +38,20 @@ class ScriptedChatModel(BaseChatModel):
         if not self.responses:
             raise AssertionError("ScriptedChatModel ran out of responses")
         message = self.responses.pop(0)
+        if isinstance(message, Exception):
+            raise message
         return ChatResult(generations=[ChatGeneration(message=message)])
+
+
+def final_text(text: str = "Root cause found; see summary.") -> AIMessage:
+    """The agent's closing message: plain text, no tool calls."""
+
+    return AIMessage(content=text)
+
+
+def report_json(**fields: Any) -> AIMessage:
+    """The report step's reply."""
+
+    import json
+
+    return AIMessage(content=json.dumps(fields))

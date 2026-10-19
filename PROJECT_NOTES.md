@@ -18,16 +18,16 @@ I worked on ADF pipelines and Databricks transformations as a data engineer, so 
 The number of steps isn't fixed: the agent decides what to check next from what it found. LangGraph gives me a loop with conditional edges, a step budget, state and an interrupt for human approval.
 
 **Why build the graph yourself instead of a prebuilt ReAct agent?**
-I needed a step budget, a forced final answer, structured output and an approval node. As explicit nodes, each one is visible and testable.
+I needed a step budget, a separate report step for structured output, and an approval node. As explicit nodes, each one is visible and testable.
 
 **How does the agent stop?**
-It calls `submit_diagnosis`. If it stops calling tools or uses its 6-round budget, a `force_submit` node makes it submit with the evidence it has.
+When it stops calling tools, or after a 6-round budget. A separate report step then turns the investigation transcript into a validated JSON report.
 
 **How do you prevent harmful actions?**
 All seven tools are read-only. The only write action, a rerun, sits behind `interrupt()` and runs only after a human approves.
 
 **How do you get structured output?**
-The final answer is a tool call whose arguments are the Pydantic `DiagnosisReport` schema, with lenient parsing for slightly malformed values.
+A report step sends the investigation transcript to the LLM and asks for JSON, validated by Pydantic with lenient coercion and one retry. At first I used a "submit report" tool, but evaluation showed the model rarely called it and forced calls failed with 400 errors, so I changed the design.
 
 **Why hybrid search?**
 BM25 matches exact error codes; embeddings match paraphrases. Reciprocal Rank Fusion combines the two rankings without tuning weights.
@@ -36,10 +36,13 @@ BM25 matches exact error codes; embeddings match paraphrases. Reciprocal Rank Fu
 12 known incidents, scored on category, action, whether it used the right evidence tools, and an LLM judge from a different model family for the root cause. It runs in GitHub Actions.
 
 **How do you test without calling an LLM?**
-A scripted chat model returns pre-written tool calls, so tests cover routing, the step budget, forced submission, tool errors and approve/reject paths offline.
+A scripted chat model returns pre-written tool calls and replies, so tests cover routing, the step budget, report retries, provider errors, tool errors and approve/reject paths offline.
 
 **Why Groq and gpt-oss-120b?**
 It's a free tier with good tool calling and fast inference on an open-weight model. Tool outputs are kept compact so a full investigation fits within free-tier token limits.
+
+**What did evaluation teach you?**
+Run 1 showed category mix-ups where definitions overlapped, so I added explicit category rules. Run 2 exposed provider errors on the final tool call, so I split the agent into an investigate phase and a report phase. Each change was measured on the same 12 incidents.
 
 **What would you change for production?**
 Real APIs behind the tools (ADF REST, Log Analytics, Databricks Jobs), a persistent checkpointer, alert-triggered runs, posting to Teams, and access control on approvals.

@@ -1,9 +1,9 @@
-from fake_llm import ScriptedChatModel, call, tool_round
-from langchain_core.messages import AIMessage, ToolMessage
+from fake_llm import ScriptedChatModel, call, final_text, report_json, tool_round
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from incident_agent import data_store
 from incident_agent.config import MAX_TOOL_ROUNDS
-from incident_agent.graph import IncidentAgent, initial_request
+from incident_agent.graph import IncidentAgent, initial_request, transcript
 
 REPORT = dict(
     category="source_file_missing",
@@ -29,16 +29,23 @@ def test_full_investigation_pauses_for_approval_and_reruns_when_approved():
             call("check_landing_zone", path="landing/inventory/inventory_20261019.csv"),
             call("search_knowledge", query="file not found late arrival", source="runbooks"),
         ),
-        tool_round(call("submit_diagnosis", **REPORT)),
+        final_text("The file arrived late at 03:05; rerun."),
+        report_json(**REPORT),
     )
     agent = IncidentAgent(llm)
     result = agent.diagnose(run_id="run-1019-ingest-inventory")
 
     assert result["tools_called"] == ["get_pipeline_run", "check_landing_zone", "search_knowledge"]
     assert result["report"]["category"] == "source_file_missing"
+    assert result["budget_reached"] is False
     assert result["pending_approval"]["run_id"] == "run-1019-ingest-inventory"
     landing = next(e for e in result["trace"] if e["type"] == "tool_result" and e["tool"] == "check_landing_zone")
     assert "03:05" in landing["content"]
+
+    # The report step gets a plain-text transcript, not raw tool messages.
+    report_call = llm.seen[-1]
+    assert [type(m) for m in report_call] == [SystemMessage, HumanMessage]
+    assert "RESULT check_landing_zone" in report_call[1].content and "AGENT: The file arrived late" in report_call[1].content
 
     events = list(agent.resume(result["thread_id"], approved=True, approver="Piyush"))
     action = next(e for e in events if e["type"] == "action_result")
@@ -49,7 +56,7 @@ def test_full_investigation_pauses_for_approval_and_reruns_when_approved():
 
 def test_rejected_rerun_changes_nothing():
     before = len(data_store.rerun_log())
-    agent = IncidentAgent(scripted(tool_round(call("submit_diagnosis", **REPORT))))
+    agent = IncidentAgent(scripted(final_text(), report_json(**REPORT)))
     result = agent.diagnose(run_id="run-1019-ingest-inventory")
     events = list(agent.resume(result["thread_id"], approved=False, comment="Wait for the full file"))
     action = next(e for e in events if e["type"] == "action_result")
@@ -59,43 +66,71 @@ def test_rejected_rerun_changes_nothing():
 
 def test_no_approval_needed_when_a_fix_is_required():
     report = {**REPORT, "category": "authentication", "recommended_action": "fix_then_rerun"}
-    result = IncidentAgent(scripted(tool_round(call("submit_diagnosis", **report)))).diagnose(run_id="run-1019-ingest-customers")
+    result = IncidentAgent(scripted(final_text(), report_json(**report))).diagnose(run_id="run-1019-ingest-customers")
     assert result["report"]["recommended_action"] == "fix_then_rerun"
     assert result["pending_approval"] is None
 
 
-def test_budget_limit_forces_a_diagnosis():
+def test_step_budget_stops_the_loop_and_still_produces_a_report():
     rounds = [tool_round(call("get_recent_runs", pipeline_name="pl_ingest_products")) for _ in range(MAX_TOOL_ROUNDS + 1)]
-    llm = scripted(*rounds, tool_round(call("submit_diagnosis", **{**REPORT, "recommended_action": "escalate"})))
+    llm = scripted(*rounds, report_json(**{**REPORT, "recommended_action": "escalate"}))
     result = IncidentAgent(llm).diagnose(run_id="run-1019-ingest-products")
 
-    assert result["tools_called"].count("get_recent_runs") == MAX_TOOL_ROUNDS + 1  # last round requested, not run
+    assert result["budget_reached"] is True
     assert sum(1 for e in result["trace"] if e["type"] == "tool_result") == MAX_TOOL_ROUNDS
-    assert result["forced_submit"] is True
-    assert llm.tool_choices[-1] == "submit_diagnosis"
-    # The skipped call was answered before the model was asked again (provider APIs require it).
-    final_prompt = llm.seen[-1]
-    skipped = [m for m in final_prompt if isinstance(m, ToolMessage) and "budget" in str(m.content)]
-    assert len(skipped) == 1
+    assert result["report"]["recommended_action"] == "escalate"
 
 
-def test_plain_text_answer_is_turned_into_a_structured_report():
-    llm = scripted(
-        AIMessage(content="I think the secret expired."),
-        tool_round(call("submit_diagnosis", category="Authentication", root_cause="Secret expired.", confidence="medium",
-                        evidence=["test connection failed"], fix_steps=["Rotate secret"], recommended_action="fix then rerun",
-                        incident_summary="Secret expired.")),
-    )
+def test_invalid_report_json_is_retried_once():
+    llm = scripted(final_text(), AIMessage(content="Sure! The cause is a late file."), report_json(**REPORT))
+    result = IncidentAgent(llm).diagnose(run_id="run-1019-ingest-inventory")
+    assert result["report"]["category"] == "source_file_missing"
+    assert "not a valid JSON object" in llm.seen[-1][-1].content
+
+
+def test_report_falls_back_to_text_when_json_never_arrives():
+    llm = scripted(final_text(), AIMessage(content="no json"), AIMessage(content="still no json, the secret expired"))
     result = IncidentAgent(llm).diagnose(run_id="run-1019-ingest-customers")
-    assert result["forced_submit"] is True
-    assert result["report"]["category"] == "authentication"
-    assert result["report"]["recommended_action"] == "fix_then_rerun"
+    assert result["report"]["category"] == "unknown"
+    assert result["report"]["confidence"] == "low"
+    assert "secret expired" in result["report"]["root_cause"]
+    assert result["report"]["recommended_action"] == "escalate"  # safe default, never an automatic rerun
+
+
+def test_messy_report_values_are_coerced():
+    messy = {**REPORT, "category": "Schema Drift", "recommended_action": "Fix-Then-Rerun", "evidence": "one fact"}
+    llm = scripted(final_text(), AIMessage(content="```json\n" + __import__("json").dumps(messy) + "\n```"))
+    report = IncidentAgent(llm).diagnose(run_id="run-1019-ingest-stores")["report"]
+    assert report["category"] == "schema_drift" and report["recommended_action"] == "fix_then_rerun"
+    assert report["evidence"] == ["one fact"]
+
+
+def test_provider_rejecting_a_malformed_tool_call_is_retried():
+    rejected = RuntimeError("Error code: 400 - {'error': {'message': 'Tool call validation failed: parameters did not match schema'}}")
+    llm = scripted(
+        rejected,
+        tool_round(call("get_pipeline_run", run_id="run-1019-ingest-stores")),
+        final_text(),
+        report_json(**{**REPORT, "category": "schema_drift", "recommended_action": "fix_then_rerun"}),
+    )
+    result = IncidentAgent(llm).diagnose(run_id="run-1019-ingest-stores")
+    assert result["tools_called"] == ["get_pipeline_run"]
+    assert result["report"]["category"] == "schema_drift"
+
+
+def test_other_provider_errors_are_raised():
+    import pytest
+
+    llm = scripted(RuntimeError("Error code: 401 - Invalid API Key"))
+    with pytest.raises(RuntimeError, match="401"):
+        IncidentAgent(llm).diagnose(run_id="run-1019-ingest-stores")
 
 
 def test_tool_errors_are_returned_to_the_model_not_raised():
     llm = scripted(
         tool_round(call("get_pipeline_run", run_id="does-not-exist"), call("get_job_metrics", job_name="nb_unknown")),
-        tool_round(call("submit_diagnosis", **{**REPORT, "category": "unknown", "recommended_action": "escalate"})),
+        final_text(),
+        report_json(**{**REPORT, "category": "unknown", "recommended_action": "escalate"}),
     )
     result = IncidentAgent(llm).diagnose(run_id="does-not-exist")
     results = [e["content"] for e in result["trace"] if e["type"] == "tool_result"]
@@ -105,8 +140,18 @@ def test_tool_errors_are_returned_to_the_model_not_raised():
 
 def test_free_text_errors_are_supported():
     assert "Investigate this pipeline failure" in initial_request(error_text="Java heap space")
-    result = IncidentAgent(scripted(tool_round(call("submit_diagnosis", **{**REPORT, "recommended_action": "rerun"})))).diagnose(
-        error_text="Path not found: landing/inventory/x.csv"
-    )
+    result = IncidentAgent(scripted(final_text(), report_json(**REPORT))).diagnose(error_text="Path not found: landing/inventory/x.csv")
     assert result["report"]["recommended_action"] == "rerun"
     assert result["pending_approval"] is None  # no run id, so nothing to rerun
+
+
+def test_transcript_format():
+    text = transcript([HumanMessage("Investigate run x"), tool_round(call("get_pipeline_run", run_id="x")), AIMessage(content="Done")])
+    assert text.splitlines() == ["REQUEST: Investigate run x", 'CALL get_pipeline_run({"run_id": "x"})', "AGENT: Done"]
+
+
+def test_qwen_judge_requests_fit_the_free_tier_output_limit():
+    from incident_agent.llm import make_chat_model
+
+    judge = make_chat_model("groq", "qwen/qwen3.8-27b", api_key="k", max_tokens=300)
+    assert judge.max_tokens == 300 and judge.reasoning_format == "hidden"
