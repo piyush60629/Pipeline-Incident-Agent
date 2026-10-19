@@ -41,4 +41,4 @@ Prevention: make `run_pipeline.py` check that the input layers exist before star
 - Stages overwrite their batch_date partition, so rerunning a batch is safe.
 
 ## Known gap: a source file that is not re-delivered
-If a daily file is not sent, the manifest marks it unchanged and the pipeline can SUCCEED using the previous day's data. Watch for datasets with `delivered_for_this_batch = false` in the source file check.
+If a daily file is not sent, the manifest marks it unchanged and the pipeline can SUCCEED using the previous day's data. Watch for datasets with `registered_in_manifest_for_batch = false` in the source file check.

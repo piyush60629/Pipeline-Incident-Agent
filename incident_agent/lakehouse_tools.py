@@ -31,7 +31,8 @@ def get_lakehouse_run(run_id: str) -> str:
             item = {k: stage.get(k) for k in STAGE_SUMMARY_KEYS}
             if stage["status"] == "FAILED":
                 item["error_type"] = stage.get("error_type")
-                item["error_message"] = _short(stage.get("error_message"), 400)
+                item["error_message"] = _short(stage.get("error_message"), 300)
+                item["root_error"] = _short(stage.get("root_error"), 400)
                 item["key_error_lines"] = [_short(line, 220) for line in (stage.get("key_error_lines") or [])[-4:]]
             stages.append(item)
         keep = ("run_id", "pipeline", "batch_date", "status", "started_at", "duration_seconds", "start_from",
@@ -75,11 +76,12 @@ def get_recent_lakehouse_runs(limit: int = 7) -> str:
 
 @tool
 def check_source_files(run_id: str, dataset: str = "") -> str:
-    """Check the raw source CSV files as they were for a lakehouse run: file manifest status and
-    whether it was delivered for this batch, size, row count, rows with the wrong number of columns, whether the file
-    ends cleanly, the last row, columns added or missing versus the Bronze schema, values that do not
-    match the schema's numeric types, and duplicate primary keys. Datasets: customers, products,
-    orders, order_items, payments. Leave dataset empty for all files."""
+    """Check the raw source CSV files as they were for a lakehouse run: file manifest status and whether
+    the manifest registered the file for this batch (false if it was not re-delivered OR ingestion never ran
+    for the batch), size, row count, rows with the wrong number of columns, whether the file ends cleanly,
+    the last row, columns added or missing versus the Bronze schema, values that do not match the schema's
+    numeric types, and duplicate primary keys. Datasets: customers, products, orders, order_items,
+    payments. Leave dataset empty for all files."""
 
     def fetch() -> dict:
         files = store.source_files(run_id)["files"]
@@ -90,7 +92,7 @@ def check_source_files(run_id: str, dataset: str = "") -> str:
             return match[0]
         summary = []
         for f in files:
-            item = {k: f.get(k) for k in ("dataset", "manifest_status", "delivered_for_this_batch", "rows_excluding_header",
+            item = {k: f.get(k) for k in ("dataset", "manifest_status", "registered_in_manifest_for_batch", "rows_excluding_header",
                                           "rows_with_wrong_column_count", "ends_with_newline", "duplicate_primary_keys")}
             for key in ("added_columns", "missing_columns", "values_not_matching_schema_type", "manifest_error"):
                 if f.get(key):

@@ -64,7 +64,10 @@ def failed_runs() -> list[dict]:
     for summary in reversed(all_runs()):
         if summary["status"] == "FAILED":
             run = get_run(summary["run_id"])
-            failures.append({**summary, "error_message": run.get("error_message") or ""})
+            message = f"{run.get('error_type') or 'Error'}: {run.get('error_message') or ''}"
+            if run.get("root_error") and run["root_error"] not in message:
+                message += f"\nRoot error: {run['root_error']}"
+            failures.append({**summary, "error_message": message})
     return failures
 
 

@@ -37,8 +37,9 @@ facts -> Gold -> Gold quality -> analytics) started with run_pipeline.py. The to
 report snapshots of each run.
 
 How to work:
-1. If you have a run id, call get_lakehouse_run first: note the failed stage, the exception, and whether the
-   run used start_from to skip earlier stages.
+1. If you have a run id, call get_lakehouse_run first: note the failed stage, the root error (the real cause
+   under wrapper exceptions such as PipelineExecutionError), and whether the run used start_from to skip
+   earlier stages.
 2. Gather evidence for the error (several tools per round is fine): CSV parsing, type or duplicate errors in
    ingestion -> check_source_files (all files, then the suspect dataset); missing input paths or a run that
    skipped stages -> get_layer_outputs; unclear errors -> get_stage_log; data quality -> get_validation_report
@@ -110,5 +111,6 @@ def run_label(environment: str, run: dict[str, Any]) -> str:
     """A short label of a failed run for pickers."""
 
     if environment == "lakehouse":
-        return f"batch {run['batch_date']}  ·  {run.get('failed_stage') or '?'}  ·  {(run.get('error_type') or 'error').rsplit('.', 1)[-1]}"
+        error = (run.get("root_error") or run.get("error_type") or "error").split(":")[0].rsplit(".", 1)[-1]
+        return f"batch {run['batch_date']}  ·  {run.get('failed_stage') or '?'}  ·  {error}"
     return f"{run['pipeline']}  ·  {run['error_code']}  ·  {run['start'][:16].replace('T', ' ')}"
