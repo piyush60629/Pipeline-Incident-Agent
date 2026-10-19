@@ -4,6 +4,8 @@ An AI agent that investigates failed data pipeline runs the way an on-call data 
 
 Built with **LangGraph**, **LangChain**, open-weight LLMs on **Groq** (OpenAI gpt-oss-120b), **hybrid search** (BM25 + Gemini embeddings) and **Streamlit**.
 
+**🚀 Live demo: [pipeline-incident-agent.streamlit.app](https://pipeline-incident-agent.streamlit.app/)**: pick a failed run, click **Diagnose**, and watch the agent investigate. For the late inventory file it asks you to approve the rerun.
+
 > All pipeline data in this repository is synthetic: an invented retail data platform on Azure Data Factory, ADLS Gen2, Databricks and Snowflake with 12 failures, each with a different root cause.
 
 ## The problem
