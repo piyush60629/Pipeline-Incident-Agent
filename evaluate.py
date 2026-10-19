@@ -1,6 +1,10 @@
-"""Evaluate the agent on the 12 known incidents in eval/cases.json.
+"""Evaluate the agent on the known incidents in eval/cases.json.
+
+Two platforms: 12 synthetic Azure incidents, and 5 real failed runs of the Retail Analytics Lakehouse
+(each case has an "environment" field).
 
     python evaluate.py                      # all cases, Groq gpt-oss-120b agent, Qwen judge
+    python evaluate.py --environment lakehouse
     python evaluate.py --cases late-source-file shir-offline
     python evaluate.py --no-judge           # skip the LLM judge (deterministic metrics only)
 
@@ -39,7 +43,7 @@ RESULTS = ROOT / "eval" / "results"
 README_START, README_END = "<!-- EVAL_RESULTS_START -->", "<!-- EVAL_RESULTS_END -->"
 MAX_CONSECUTIVE_ERRORS = 3
 HISTORY_FIELDS = [
-    "timestamp", "label", "provider", "agent_model", "judge_model", "cases", "errors", "completion_rate",
+    "timestamp", "label", "scope", "provider", "agent_model", "judge_model", "cases", "errors", "completion_rate",
     "category_accuracy", "action_accuracy", "tool_recall", "root_cause_score", "avg_tool_calls", "avg_seconds",
     "budget_reached_rate",
 ]
@@ -50,8 +54,12 @@ important part, 0 if it is wrong or too vague to act on. Respond with JSON only:
 {"score": <0|0.5|1>, "reason": "<one short sentence>"}"""
 
 
-def load_cases(selected: Sequence[str] | None = None) -> list[dict]:
+def load_cases(selected: Sequence[str] | None = None, environment: str | None = None) -> list[dict]:
     cases = json.loads(CASES.read_text(encoding="utf-8"))["cases"]
+    for case in cases:
+        case.setdefault("environment", "azure")
+    if environment and environment != "all":
+        cases = [c for c in cases if c["environment"] == environment]
     if selected:
         unknown = set(selected) - {c["id"] for c in cases}
         if unknown:
@@ -100,6 +108,7 @@ def score_case(case: dict, outcome: dict) -> dict:
     expected = set(case["expected_tools"])
     return {
         "id": case["id"],
+        "environment": case.get("environment", "azure"),
         "run_id": case["run_id"],
         "completed": bool(report),
         "category": report.get("category"),
@@ -143,6 +152,13 @@ def _pct(value: float | None) -> str:
     return "n/a" if value is None else f"{value * 100:.1f}%"
 
 
+def by_environment(rows: list[dict]) -> dict[str, dict]:
+    groups: dict[str, list[dict]] = {}
+    for row in rows:
+        groups.setdefault(row.get("environment", "azure"), []).append(row)
+    return {name: aggregate(group) for name, group in groups.items()}
+
+
 def render_markdown(summary: dict, rows: list[dict], config: dict) -> str:
     lines = [
         "# Agent evaluation results",
@@ -161,6 +177,20 @@ def render_markdown(summary: dict, rows: list[dict], config: dict) -> str:
         f"| Avg seconds per incident | {summary['avg_seconds'] if summary['avg_seconds'] is not None else 'n/a'} |",
         f"| Stopped by the {MAX_TOOL_ROUNDS}-round step budget | {_pct(summary['budget_reached_rate'])} |",
         "",
+    ]
+    groups = by_environment(rows)
+    if len(groups) > 1:
+        lines += [
+            "| Platform | Incidents | Category | Action | Tool recall | Root cause |",
+            "|---|---|---|---|---|---|",
+            *[
+                f"| {name} | {g['cases']} | {_pct(g['category_accuracy'])} | {_pct(g['action_accuracy'])} | "
+                f"{_pct(g['tool_recall'])} | {_pct(g['root_cause_score'])} |"
+                for name, g in groups.items()
+            ],
+            "",
+        ]
+    lines += [
         "## Per-incident results",
         "",
         "| Case | Category | Action | Tool recall | Root cause | Tool calls | Note |",
@@ -179,18 +209,34 @@ def render_markdown(summary: dict, rows: list[dict], config: dict) -> str:
     return "\n".join(lines)
 
 
-def write_outputs(summary: dict, rows: list[dict], config: dict, output_dir: Path, update_readme: bool) -> Path:
+RENAMED_HISTORY_FIELDS = {"forced_submit_rate": "budget_reached_rate"}
+
+
+def append_history(history: Path, row: dict) -> None:
+    """Append one row; if the file has older columns, rewrite it with the current columns first."""
+
+    rows: list[dict] = []
+    if history.exists():
+        with history.open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            if reader.fieldnames != HISTORY_FIELDS:
+                rows = [{RENAMED_HISTORY_FIELDS.get(k, k): v for k, v in old.items()} for old in reader]
+    if rows or not history.exists():
+        with history.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=HISTORY_FIELDS, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(rows)
+    with history.open("a", newline="", encoding="utf-8") as handle:
+        csv.DictWriter(handle, fieldnames=HISTORY_FIELDS, extrasaction="ignore").writerow(row)
+
+
+def write_outputs(summary: dict, rows: list[dict], config: dict, output_dir: Path, update_readme: bool,
+                  history_dir: Path | None = None) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "latest.json").write_text(json.dumps({"config": config, "summary": summary, "results": rows}, indent=2), encoding="utf-8")
     markdown = render_markdown(summary, rows, config)
     (output_dir / "latest.md").write_text(markdown, encoding="utf-8")
-    history = output_dir / "history.csv"
-    new = not history.exists()
-    with history.open("a", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=HISTORY_FIELDS, extrasaction="ignore")
-        if new:
-            writer.writeheader()
-        writer.writerow({**config, **summary})
+    append_history((history_dir or output_dir) / "history.csv", {**config, **summary})
     if update_readme:
         readme = ROOT / "README.md"
         text = readme.read_text(encoding="utf-8")
@@ -203,14 +249,14 @@ def write_outputs(summary: dict, rows: list[dict], config: dict, output_dir: Pat
 
 
 def run(args: argparse.Namespace, agent=None, judge=None, sleep=time.sleep, log=print) -> tuple[list[dict], dict, bool]:
-    cases = load_cases(args.cases)
+    cases = load_cases(args.cases, getattr(args, "environment", None))
     rows: list[dict] = []
     consecutive_errors, stopped = 0, False
     for number, case in enumerate(cases, start=1):
         if number > 1 and args.delay:
             sleep(args.delay)
         try:
-            outcome = agent.diagnose(run_id=case["run_id"])
+            outcome = agent.diagnose(run_id=case["run_id"], environment=case.get("environment", "azure"))
             row = score_case(case, outcome)
             if judge is not None and row["root_cause"]:
                 try:
@@ -241,6 +287,7 @@ def run(args: argparse.Namespace, agent=None, judge=None, sleep=time.sleep, log=
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--cases", nargs="*", help="Case ids to run (default: all)")
+    parser.add_argument("--environment", choices=["all", "azure", "lakehouse"], default="all")
     parser.add_argument("--provider", choices=["groq", "gemini"])
     parser.add_argument("--model", help="Agent model (default: openai/gpt-oss-120b on Groq)")
     parser.add_argument("--judge-model", default=None, help=f"Judge model (default: {GROQ_JUDGE_MODEL} on Groq)")
@@ -264,7 +311,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     agent = create_agent(provider=provider, model=agent_model)
     judge = None if args.no_judge else make_chat_model(provider, judge_model, max_tokens=300)
 
-    print(f"Evaluating {agent_model} ({provider}) on {len(load_cases(args.cases))} incidents; judge: {judge_model or 'none'}")
+    print(f"Evaluating {agent_model} ({provider}) on {len(load_cases(args.cases, args.environment))} incidents; judge: {judge_model or 'none'}")
     rows, summary, stopped = run(args, agent=agent, judge=judge)
     config = {
         "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
@@ -273,8 +320,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         "agent_model": agent_model,
         "judge_model": judge_model,
     }
-    output_dir = RESULTS / "failed-run" if stopped else RESULTS
-    report = write_outputs(summary, rows, config, output_dir, update_readme=args.update_readme and not stopped)
+    # Only a complete run of every case replaces latest.* and the README table; subsets go to partial/.
+    full_run = not args.cases and args.environment == "all"
+    if stopped:
+        output_dir, history_dir = RESULTS / "failed-run", None
+    elif full_run:
+        output_dir, history_dir = RESULTS, None
+    else:
+        output_dir, history_dir = RESULTS / "partial", RESULTS
+    config["scope"] = "all" if full_run else (" ".join(args.cases) if args.cases else args.environment)
+    report = write_outputs(summary, rows, config, output_dir, update_readme=args.update_readme and full_run and not stopped,
+                           history_dir=history_dir)
     print()
     print(report.read_text(encoding="utf-8"))
     return 1 if stopped or summary["errors"] == summary["cases"] else 0

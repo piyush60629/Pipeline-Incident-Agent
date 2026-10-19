@@ -12,8 +12,13 @@ on:
         type: choice
         options: [openai/gpt-oss-120b, openai/gpt-oss-20b]
         default: openai/gpt-oss-120b
+      environment:
+        description: "Platform: all, azure (12 synthetic incidents) or lakehouse (5 real lakehouse runs)"
+        type: choice
+        options: [all, azure, lakehouse]
+        default: all
       cases:
-        description: "Case ids separated by spaces (empty = all 12)"
+        description: "Case ids separated by spaces (empty = all). Only full runs update the README table"
         default: ""
       delay:
         description: "Seconds between incidents (free-tier per-minute limits)"
@@ -58,6 +63,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           MODEL: ${{ inputs.model }}
           CASES: ${{ inputs.cases }}
+          ENVIRONMENT: ${{ inputs.environment }}
           DELAY: ${{ inputs.delay }}
           JUDGE: ${{ inputs.judge }}
           LABEL: ${{ inputs.label }}
@@ -70,7 +76,7 @@ jobs:
           if [ -n "$CASES" ]; then extra="--cases $CASES"; fi
           if [ "$JUDGE" != "true" ]; then extra="$extra --no-judge"; fi
           set -o pipefail
-          if ! python evaluate.py --provider groq --model "$MODEL" --delay "$DELAY" --label "$LABEL" --update-readme $extra 2>&1 | tee eval-output.log; then
+          if ! python evaluate.py --provider groq --model "$MODEL" --delay "$DELAY" --label "$LABEL" --environment "${ENVIRONMENT:-all}" --update-readme $extra 2>&1 | tee eval-output.log; then
             reason=$( (grep -E "ERROR" eval-output.log | tail -1; grep -E "Stopping|Set GROQ" eval-output.log | tail -1) | tr '\n' ' ' | cut -c1-700)
             echo "::error title=Evaluation failed::${reason:-See the Run evaluation log for details.}"
             exit 1
@@ -82,6 +88,8 @@ jobs:
           if [ -f eval/results/failed-run/latest.md ]; then
             echo "## Run stopped early (partial results)" >> "$GITHUB_STEP_SUMMARY"
             cat eval/results/failed-run/latest.md >> "$GITHUB_STEP_SUMMARY"
+          elif [ -n "$(git status --porcelain eval/results/partial)" ]; then
+            cat eval/results/partial/latest.md >> "$GITHUB_STEP_SUMMARY"
           elif [ -f eval/results/latest.md ]; then
             cat eval/results/latest.md >> "$GITHUB_STEP_SUMMARY"
           fi

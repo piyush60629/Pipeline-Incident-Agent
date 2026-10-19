@@ -15,6 +15,7 @@ Category = Literal[
     "upstream_dependency",
     "duplicate_data",
     "source_file_missing",
+    "corrupt_source_file",
     "data_quality",
     "resource_quota",
     "transient_network",
@@ -35,7 +36,9 @@ class DiagnosisReport(BaseModel):
         description="Failure category of THIS run. Rules: a run that failed because an upstream pipeline failed is "
         "'upstream_dependency' (even if the upstream failure was out of memory); a failed data quality check is "
         "'data_quality' (even if a source change caused it); 'schema_drift' is only for added, removed or renamed "
-        "columns that break the load; 'permission' = authenticated but not allowed (403); 'authentication' = "
+        "columns that break the load; 'corrupt_source_file' = a source file that is truncated, cut off mid-row or "
+        "otherwise unreadable (a wrong value inside a well-formed file is 'data_quality'); a run started from a later "
+        "stage whose inputs were never produced is 'upstream_dependency'; 'permission' = authenticated but not allowed (403); 'authentication' = "
         "credentials rejected or expired; 'unknown' only if the evidence is insufficient."
     )
     root_cause: str = Field(description="One or two sentences: what actually caused the failure, based on tool evidence.")

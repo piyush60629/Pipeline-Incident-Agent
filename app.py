@@ -22,6 +22,18 @@ TOOL_LABELS = {
     "get_job_metrics": "Read Databricks job metrics",
     "check_landing_zone": "Check landing zone files",
     "search_knowledge": "Search runbooks and incidents",
+    "get_lakehouse_run": "Read the lakehouse run log",
+    "get_stage_log": "Read the stage's console log",
+    "get_recent_lakehouse_runs": "Check recent lakehouse runs",
+    "check_source_files": "Check the raw source files",
+    "get_validation_report": "Read the validation report",
+    "get_gold_quality": "Read the Gold quality checks",
+    "get_layer_outputs": "Check Medallion layer outputs",
+}
+ENVIRONMENT_HELP = {
+    "lakehouse": "Real run logs from my [Retail Analytics Lakehouse](https://github.com/piyush60629/Retail-Analytics-Lakehouse) "
+    "(PySpark Medallion pipeline). Each failure was produced by running the real pipeline on a batch with a broken input.",
+    "azure": "An invented Azure Data Factory + Databricks + Snowflake platform with 12 synthetic incidents.",
 }
 
 
@@ -82,13 +94,14 @@ def sidebar(settings: tuple[str, str] | None) -> None:
             st.error("Add GROQ_API_KEY (or GEMINI_API_KEY) in the app secrets.")
         st.caption(f"Knowledge search: {default_knowledge_base().mode}")
         st.markdown(
-            "1. **Investigate**: the LLM picks tools to call (run details, history, connections, "
-            "schemas, job metrics, landing files, runbooks).\n"
+            "1. **Investigate**: the LLM picks tools to call (run logs, history, source files, schemas, "
+            "connections, job metrics, runbooks).\n"
             "2. **Loop**: it reads the results and decides what to check next (up to 6 rounds).\n"
             "3. **Diagnose**: it submits a structured report with evidence and fix steps.\n"
             "4. **Approve**: a rerun only happens after a person approves it."
         )
-        st.caption("Built with LangGraph, LangChain, Groq and Streamlit. All pipeline data is synthetic.")
+        st.caption("Built with LangGraph, LangChain, Groq and Streamlit. The Azure incidents are synthetic; the lakehouse "
+                   "runs are real runs of a PySpark pipeline on generated retail data.")
 
 
 def show_event(event: dict) -> None:
@@ -134,7 +147,8 @@ def main() -> None:
     load_secrets()
     require_optional_password()
 
-    from incident_agent import data_store
+    from incident_agent import data_store, lakehouse_store
+    from incident_agent.environments import ENVIRONMENTS, run_label
 
     st.title(APP_TITLE)
     st.caption(
@@ -144,15 +158,26 @@ def main() -> None:
     settings = model_settings()
     sidebar(settings)
 
-    failures = data_store.failed_runs()
+    environment = st.radio(
+        "Platform", list(ENVIRONMENTS), format_func=lambda key: ENVIRONMENTS[key].label, horizontal=True,
+        key="environment",
+    )
+    st.caption(ENVIRONMENT_HELP[environment])
+    if st.session_state.get("diagnosis", {}).get("environment") not in (None, environment):
+        st.session_state.pop("diagnosis")
+
+    failures = lakehouse_store.failed_runs() if environment == "lakehouse" else data_store.failed_runs()
     mode = st.radio("What failed?", ["Pick a failed run", "Paste an error message"], horizontal=True)
     run_id, error_text = None, None
     if mode == "Pick a failed run":
-        options = {f"{r['pipeline']}  ·  {r['error_code']}  ·  {r['start'][:16].replace('T', ' ')}": r for r in failures}
-        choice = st.selectbox(f"{len(failures)} open failures (synthetic data)", list(options))
+        if not failures:
+            st.info("No failed runs found for this platform.")
+            return
+        options = {f"{run_label(environment, r)}  ·  {r['run_id']}": r for r in failures}
+        choice = st.selectbox(f"{len(failures)} failed runs", list(options))
         run = options[choice]
         run_id = run["run_id"]
-        st.code(run["error_message"], language=None, wrap_lines=True)
+        st.code(run["error_message"] or "(no error message captured)", language=None, wrap_lines=True)
     else:
         error_text = st.text_area(
             "Error message",
@@ -166,12 +191,13 @@ def main() -> None:
             st.warning("Paste an error message first.")
         else:
             agent = get_agent(*settings)
-            session = {"events": [], "report": None, "pending": None, "action": None, "thread_id": None, "error": None}
+            session = {"events": [], "report": None, "pending": None, "action": None, "thread_id": None, "error": None,
+                       "environment": environment}
             st.session_state.diagnosis = session
             streamed_now = True
             with st.status("Investigating…", expanded=True) as status:
                 try:
-                    for event in agent.stream(run_id=run_id, error_text=error_text):
+                    for event in agent.stream(run_id=run_id, error_text=error_text, environment=environment):
                         if event["type"] == "start":
                             session["thread_id"] = event["thread_id"]
                             continue
@@ -217,7 +243,9 @@ def main() -> None:
             st.rerun()
     if session["action"]:
         result = session["action"]["result"]
-        if result.get("status") == "Queued":
+        if result.get("status") == "Queued" and result.get("command"):
+            st.success(f"Rerun queued: `{result['command']}` (simulated; in production a scheduler would run it).")
+        elif result.get("status") == "Queued":
             st.success(f"Rerun queued: `{result['rerun_id']}` (simulated; in production this calls the ADF REST API).")
         else:
             st.info("Rerun rejected. Nothing was changed.")

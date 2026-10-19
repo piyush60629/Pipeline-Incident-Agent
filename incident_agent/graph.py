@@ -8,7 +8,10 @@
                                                                  |              |
                                                                 END   approved -> rerun (simulated)
 
-* investigate: the LLM with seven read-only tools decides what to check next (ReAct loop).
+The tools, instructions and rerun action come from the environment (environments.py): the synthetic
+Azure platform or the real Retail Analytics Lakehouse run logs.
+
+* investigate: the LLM with read-only tools decides what to check next (ReAct loop).
 * tools: LangGraph's ToolNode runs the requested tools (several in parallel per round).
 * report: a separate LLM call turns the investigation transcript into a JSON DiagnosisReport,
   validated with Pydantic, with one retry if the JSON is invalid.
@@ -36,26 +39,11 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from langgraph.types import Command, interrupt
 
-from . import data_store
 from .config import MAX_TOOL_ROUNDS
+from .environments import DEFAULT_ENVIRONMENT, ENVIRONMENTS, get_environment
 from .schemas import coerce_report, extract_json_object, report_field_guide
-from .tools import INVESTIGATION_TOOLS
 
-SYSTEM_PROMPT = f"""You are an on-call data platform engineer investigating a failed pipeline run on an Azure
-Data Factory + ADLS Gen2 + Databricks + Snowflake platform.
-
-How to work:
-1. If you have a run id, call get_pipeline_run first.
-2. Gather evidence with the specific tools for the error (several tools per round is fine):
-   credentials, permissions, runtimes or quotas -> check_linked_service; column or data quality errors ->
-   compare_source_schema; timeouts or out-of-memory -> get_job_metrics; missing, late or duplicate
-   files -> check_landing_zone and get_recent_runs; transient-looking errors -> get_recent_runs and
-   check_linked_service; upstream dependency failures -> get_pipeline_run on the upstream run id.
-3. Call search_knowledge at least once with the key error words and your suspected cause, to find the
-   team's runbook fix and similar past incidents.
-4. Only state facts you saw in tool results. Use at most {MAX_TOOL_ROUNDS} tool rounds.
-5. When you have enough evidence, stop calling tools and reply with a short summary of the root cause,
-   the key evidence, the fix and whether a rerun, a fix first, or another team is needed."""
+SYSTEM_PROMPT = ENVIRONMENTS["azure"].system_prompt  # kept for backwards compatibility
 
 REPORT_PROMPT = f"""You turn an incident investigation into a JSON report. Use only facts that appear in the
 investigation transcript. Return ONLY one JSON object with these fields:
@@ -63,8 +51,8 @@ investigation transcript. Return ONLY one JSON object with these fields:
 
 Rules for recommended_action: 'rerun' only when nothing needs changing (transient error, or the cause is
 already resolved, such as a late file that has now arrived); 'fix_then_rerun' when the data team can fix it
-first; 'escalate' when only another team can fix or approve it (IAM role assignments, Snowflake quotas,
-source data owners deciding a rule)."""
+first (including correcting a bad source file or rerunning from the correct stage); 'escalate' when only another
+team can fix or approve it (IAM role assignments, Snowflake quotas, source data owners deciding a rule)."""
 
 INVALID_CALL_NUDGE = "Your last tool call was rejected by the API ({error}). Call the tools again with valid arguments, or summarise your findings."
 
@@ -125,14 +113,15 @@ def _is_bad_tool_call(exc: Exception) -> bool:
     return any(marker in text for marker in ("tool call validation failed", "parsing failed", "failed to call a function", "tool_use_failed"))
 
 
-def build_graph(llm: BaseChatModel, checkpointer: Any = None):
+def build_graph(llm: BaseChatModel, checkpointer: Any = None, environment: str = DEFAULT_ENVIRONMENT):
     """Compile the agent graph around any LangChain chat model that supports tool calling."""
 
-    investigator = llm.bind_tools(INVESTIGATION_TOOLS)
-    tool_node = ToolNode(INVESTIGATION_TOOLS, handle_tool_errors=True)
+    env = get_environment(environment)
+    investigator = llm.bind_tools(env.tools)
+    tool_node = ToolNode(env.tools, handle_tool_errors=True)
 
     def investigate(state: AgentState) -> dict:
-        messages = [SystemMessage(SYSTEM_PROMPT), *state["messages"]]
+        messages = [SystemMessage(env.system_prompt), *state["messages"]]
         try:
             response = investigator.invoke(messages)
         except Exception as exc:  # noqa: BLE001 - provider rejected a malformed tool call: retry once
@@ -167,20 +156,21 @@ def build_graph(llm: BaseChatModel, checkpointer: Any = None):
 
     def approval(state: AgentState) -> dict:
         report = state["report"]
-        run = data_store.get_run(state["run_id"])
+        run = env.get_run(state["run_id"])
         decision = interrupt(
             {
                 "kind": "rerun_approval",
+                "environment": env.key,
                 "run_id": run["run_id"],
                 "pipeline": run["pipeline"],
-                "question": f"Rerun pipeline '{run['pipeline']}' (run {run['run_id']})?",
+                "question": env.rerun_question(run),
                 "reason": report["root_cause"],
             }
         )
         decision = decision if isinstance(decision, dict) else {"approved": bool(decision)}
         approver = str(decision.get("approver") or "on-call engineer")
         if decision.get("approved"):
-            result = data_store.trigger_rerun(run["run_id"], approved_by=approver, reason=report["root_cause"])
+            result = env.trigger_rerun(run["run_id"], approved_by=approver, reason=report["root_cause"])
         else:
             result = {"status": "Rejected", "rejected_by": approver, "comment": str(decision.get("comment", ""))}
         return {"approval": {"approved": bool(decision.get("approved")), "by": approver}, "action_result": result}
@@ -197,8 +187,8 @@ def build_graph(llm: BaseChatModel, checkpointer: Any = None):
         report = state.get("report") or {}
         if report.get("recommended_action") == "rerun" and state.get("run_id"):
             try:
-                data_store.get_run(state["run_id"])
-            except data_store.NotFound:
+                env.get_run(state["run_id"])
+            except env.not_found:
                 return END
             return "approval"
         return END
@@ -224,8 +214,24 @@ def build_graph(llm: BaseChatModel, checkpointer: Any = None):
 
 
 class IncidentAgent:
-    def __init__(self, llm: BaseChatModel, checkpointer: Any = None) -> None:
-        self.graph = build_graph(llm, checkpointer)
+    """One agent that can investigate any environment; a graph is compiled per environment on first use."""
+
+    def __init__(self, llm: BaseChatModel, checkpointer: Any = None, environment: str = DEFAULT_ENVIRONMENT) -> None:
+        self.llm = llm
+        self.checkpointer = checkpointer or InMemorySaver()
+        self.default_environment = get_environment(environment).key
+        self._graphs: dict[str, Any] = {}
+        self._thread_environment: dict[str, str] = {}
+
+    def graph_for(self, environment: str | None = None):
+        key = get_environment(environment or self.default_environment).key
+        if key not in self._graphs:
+            self._graphs[key] = build_graph(self.llm, self.checkpointer, key)
+        return self._graphs[key]
+
+    @property
+    def graph(self):
+        return self.graph_for(self.default_environment)
 
     def _events(self, stream: Iterator[dict]) -> Iterator[dict]:
         for update in stream:
@@ -249,24 +255,29 @@ class IncidentAgent:
                 if payload.get("action_result"):
                     yield {"type": "action_result", "approval": payload.get("approval"), "result": payload["action_result"]}
 
-    def stream(self, run_id: str | None = None, error_text: str | None = None, thread_id: str | None = None) -> Iterator[dict]:
+    def stream(self, run_id: str | None = None, error_text: str | None = None, thread_id: str | None = None,
+               environment: str | None = None) -> Iterator[dict]:
+        key = get_environment(environment or self.default_environment).key
+        graph = self.graph_for(key)
         thread_id = thread_id or uuid.uuid4().hex
+        self._thread_environment[thread_id] = key
         config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 40}
-        yield {"type": "start", "thread_id": thread_id, "run_id": run_id}
+        yield {"type": "start", "thread_id": thread_id, "run_id": run_id, "environment": key}
         state = {"messages": [HumanMessage(initial_request(run_id, error_text))], "run_id": run_id, "tool_rounds": 0}
-        yield from self._events(self.graph.stream(state, config, stream_mode="updates"))
+        yield from self._events(graph.stream(state, config, stream_mode="updates"))
 
     def resume(self, thread_id: str, approved: bool, approver: str = "on-call engineer", comment: str = "") -> Iterator[dict]:
+        graph = self.graph_for(self._thread_environment.get(thread_id, self.default_environment))
         config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 40}
         command = Command(resume={"approved": approved, "approver": approver, "comment": comment})
-        yield from self._events(self.graph.stream(command, config, stream_mode="updates"))
+        yield from self._events(graph.stream(command, config, stream_mode="updates"))
 
-    def diagnose(self, run_id: str | None = None, error_text: str | None = None) -> dict:
+    def diagnose(self, run_id: str | None = None, error_text: str | None = None, environment: str | None = None) -> dict:
         """Run to completion (or to the approval pause) and return a summary of the run."""
 
         started = time.perf_counter()
         trace, report, pending, thread_id, budget = [], None, None, None, False
-        for event in self.stream(run_id=run_id, error_text=error_text):
+        for event in self.stream(run_id=run_id, error_text=error_text, environment=environment):
             if event["type"] == "start":
                 thread_id = event["thread_id"]
             elif event["type"] in ("tool_call", "tool_result"):
