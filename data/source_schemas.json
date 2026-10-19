@@ -1,0 +1,101 @@
+{
+  "stores": {
+    "expected_columns": [
+      "store_id",
+      "store_name",
+      "city",
+      "state",
+      "store_type",
+      "opened_on",
+      "manager_id",
+      "is_active"
+    ],
+    "latest_file": "landing/stores/stores_20261019.csv",
+    "received_columns": [
+      "store_id",
+      "store_name",
+      "city",
+      "state",
+      "store_type",
+      "region_code",
+      "opened_on",
+      "manager_id",
+      "is_active"
+    ],
+    "source_release_notes": "POS master data v5.2 released 2026-10-18: new column 'region_code' added after 'store_type'. No advance notice to the data platform team."
+  },
+  "customers": {
+    "expected_columns": [
+      "customer_id",
+      "full_name",
+      "email",
+      "phone",
+      "city",
+      "signup_date",
+      "loyalty_tier"
+    ],
+    "latest_file": "landing/crm/customers_20261019.parquet",
+    "received_columns": [
+      "customer_id",
+      "full_name",
+      "email",
+      "phone",
+      "city",
+      "signup_date",
+      "loyalty_tier"
+    ],
+    "column_changes": [
+      {
+        "column": "email",
+        "change": "NOT NULL -> NULLABLE",
+        "source": "CRM release 2026.10 on 2026-10-18 (guest checkout customers have no email)"
+      }
+    ],
+    "null_rates_today": {
+      "email": "7.4%",
+      "phone": "1.1%"
+    }
+  },
+  "sales": {
+    "expected_columns": [
+      "transaction_id",
+      "line_number",
+      "store_id",
+      "product_id",
+      "quantity",
+      "gross_amount",
+      "discount_amount",
+      "net_amount",
+      "transaction_ts"
+    ],
+    "latest_file": "landing/sales/sales_20261018_v2.csv",
+    "received_columns": [
+      "transaction_id",
+      "line_number",
+      "store_id",
+      "product_id",
+      "quantity",
+      "gross_amount",
+      "discount_amount",
+      "net_amount",
+      "transaction_ts"
+    ]
+  },
+  "inventory": {
+    "expected_columns": [
+      "snapshot_date",
+      "store_id",
+      "product_id",
+      "on_hand_qty",
+      "on_order_qty"
+    ],
+    "latest_file": "landing/inventory/inventory_20261019.csv",
+    "received_columns": [
+      "snapshot_date",
+      "store_id",
+      "product_id",
+      "on_hand_qty",
+      "on_order_qty"
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "description": "One case per open failure in data/. expected_tools are the evidence sources a good investigation must use (get_pipeline_run is implied). acceptable_actions lists every reasonable recommended_action.",
+  "cases": [
+    {
+      "id": "auth-secret-expired",
+      "run_id": "run-1019-ingest-customers",
+      "expected_category": "authentication",
+      "acceptable_actions": ["fix_then_rerun"],
+      "expected_tools": ["check_linked_service"],
+      "reference_root_cause": "The client secret of service principal sp-crm-ingest used by linked service ls_adls_crm expired on 2026-10-18; it must be rotated in Key Vault before rerunning."
+    },
+    {
+      "id": "permission-role-removed",
+      "run_id": "run-1019-load-gold-finance",
+      "expected_category": "permission",
+      "acceptable_actions": ["escalate", "fix_then_rerun"],
+      "expected_tools": ["check_linked_service"],
+      "reference_root_cause": "A cloud-governance IAM cleanup on 2026-10-18 removed the Storage Blob Data Contributor role from the adf-retail-prod managed identity on the gold container, so writes to gold/finance are forbidden (403)."
+    },
+    {
+      "id": "schema-drift-new-column",
+      "run_id": "run-1019-ingest-stores",
+      "expected_category": "schema_drift",
+      "acceptable_actions": ["fix_then_rerun"],
+      "expected_tools": ["compare_source_schema"],
+      "reference_root_cause": "The POS source added a new column region_code (release v5.2 on 2026-10-18), so the stores file has 9 columns while the dataset expects 8."
+    },
+    {
+      "id": "timeout-data-growth",
+      "run_id": "run-1018-transform-gold-sales",
+      "expected_category": "timeout",
+      "acceptable_actions": ["fix_then_rerun"],
+      "expected_tools": ["get_job_metrics"],
+      "reference_root_cause": "Input volume grew about 36% in a week during the festive season and gold.fact_sales is rewritten in full every run, so the notebook duration rose steadily until it hit the 60-minute activity timeout."
+    },
+    {
+      "id": "oom-data-skew",
+      "run_id": "run-1019-transform-silver-sales",
+      "expected_category": "out_of_memory",
+      "acceptable_actions": ["fix_then_rerun"],
+      "expected_tools": ["get_job_metrics"],
+      "reference_root_cause": "Data skew on store_id: the online store S-0001 is 41% of rows, so one task read 9.6 GB versus a 118 MB median and ran out of memory; AQE skew join handling is disabled."
+    },
+    {
+      "id": "upstream-dependency",
+      "run_id": "run-1019-transform-gold-sales",
+      "expected_category": "upstream_dependency",
+      "acceptable_actions": ["fix_then_rerun", "escalate"],
+      "expected_tools": ["get_job_metrics"],
+      "reference_root_cause": "The gold pipeline did not run because its upstream pipeline pl_transform_silver_sales failed today with an out-of-memory error caused by data skew on store_id; the upstream run must be fixed and rerun first."
+    },
+    {
+      "id": "duplicate-file-resent",
+      "run_id": "run-1019-ingest-sales",
+      "expected_category": "duplicate_data",
+      "acceptable_actions": ["fix_then_rerun", "escalate"],
+      "expected_tools": ["get_recent_runs"],
+      "reference_root_cause": "Yesterday's sales file was resent as sales_20261018_v2.csv with the same MD5 hash, so every transaction_id was already loaded and the uniqueness check stopped the batch; today's sales file has not been delivered."
+    },
+    {
+      "id": "late-source-file",
+      "run_id": "run-1019-ingest-inventory",
+      "expected_category": "source_file_missing",
+      "acceptable_actions": ["rerun"],
+      "expected_tools": ["check_landing_zone"],
+      "reference_root_cause": "The inventory file arrived late at 03:05 (SLA 02:00) because of a month-end stock count, after the 02:15 run had started; it has now arrived, so a rerun is enough."
+    },
+    {
+      "id": "null-rate-source-change",
+      "run_id": "run-1019-transform-silver-customers",
+      "expected_category": "data_quality",
+      "acceptable_actions": ["escalate", "fix_then_rerun"],
+      "expected_tools": ["compare_source_schema"],
+      "reference_root_cause": "The CRM release on 2026-10-18 made email nullable for guest checkout customers, so 7.4% of emails are null and the 0% mandatory-column check failed; the data owner must decide the rule."
+    },
+    {
+      "id": "snowflake-quota",
+      "run_id": "run-1019-load-snowflake-reporting",
+      "expected_category": "resource_quota",
+      "acceptable_actions": ["escalate"],
+      "expected_tools": ["check_linked_service"],
+      "reference_root_cause": "The Snowflake resource monitor RM_MONTHLY_REPORTING used 100% of its 500-credit monthly quota, so warehouse WH_REPORTING is suspended; the platform owner must raise the quota."
+    },
+    {
+      "id": "transient-network",
+      "run_id": "run-1019-ingest-products",
+      "expected_category": "transient_network",
+      "acceptable_actions": ["rerun"],
+      "expected_tools": ["get_recent_runs", "check_linked_service"],
+      "reference_root_cause": "Transient TCP connection resets on the ExpressRoute gateway during the 02:20-02:35 maintenance window; the same error succeeded on manual reruns on the 14th and 17th and the connection test passes now."
+    },
+    {
+      "id": "shir-offline",
+      "run_id": "run-1019-ingest-onprem-branches",
+      "expected_category": "integration_runtime",
+      "acceptable_actions": ["fix_then_rerun"],
+      "expected_tools": ["check_linked_service"],
+      "reference_root_cause": "The self-hosted integration runtime shir-onprem-01 is offline because its VM rebooted for Windows patching and the DIAHostService service (startup type Manual) did not start."
+    }
+  ]
+}

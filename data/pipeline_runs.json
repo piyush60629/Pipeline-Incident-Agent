@@ -1,0 +1,1495 @@
+{
+  "generated_for": "2026-10-19",
+  "runs": [
+    {
+      "run_id": "run-1012-ingest-customers",
+      "pipeline": "pl_ingest_customers",
+      "activity": "Copy_Customers_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-12T02:15:00+05:30",
+      "end": "2026-10-12T02:21:00+05:30",
+      "duration_min": 6,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_crm"
+      ],
+      "dataset": "customers"
+    },
+    {
+      "run_id": "run-1012-ingest-inventory",
+      "pipeline": "pl_ingest_inventory",
+      "activity": "Copy_Inventory_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-12T02:15:00+05:30",
+      "end": "2026-10-12T02:22:00+05:30",
+      "duration_min": 7,
+      "rows_read": 860000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "inventory"
+    },
+    {
+      "run_id": "run-1012-ingest-sales",
+      "pipeline": "pl_ingest_sales",
+      "activity": "Copy_Sales_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-12T02:15:00+05:30",
+      "end": "2026-10-12T02:24:00+05:30",
+      "duration_min": 9,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "sales",
+      "source_file": "landing/sales/sales_20261012.csv",
+      "file_md5": "017334a1c0"
+    },
+    {
+      "run_id": "run-1012-ingest-stores",
+      "pipeline": "pl_ingest_stores",
+      "activity": "Copy_Stores_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-12T02:20:00+05:30",
+      "end": "2026-10-12T02:22:00+05:30",
+      "duration_min": 2,
+      "rows_read": 412,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "stores"
+    },
+    {
+      "run_id": "run-1012-ingest-products",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-12T02:25:00+05:30",
+      "end": "2026-10-12T02:29:00+05:30",
+      "duration_min": 4,
+      "rows_read": 48500,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products"
+    },
+    {
+      "run_id": "run-1012-ingest-onprem-branches",
+      "pipeline": "pl_ingest_onprem_branches",
+      "activity": "Copy_Branch_Master",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-12T02:30:00+05:30",
+      "end": "2026-10-12T02:35:00+05:30",
+      "duration_min": 5,
+      "rows_read": 2150,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sqlserver_onprem_branches"
+      ],
+      "dataset": "branches"
+    },
+    {
+      "run_id": "run-1012-transform-silver-customers",
+      "pipeline": "pl_transform_silver_customers",
+      "activity": "Run_nb_silver_customers",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-12T03:00:00+05:30",
+      "end": "2026-10-12T03:08:00+05:30",
+      "duration_min": 8,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "dataset": "customers",
+      "databricks_job": "nb_silver_customers"
+    },
+    {
+      "run_id": "run-1012-transform-silver-sales",
+      "pipeline": "pl_transform_silver_sales",
+      "activity": "Run_nb_silver_sales_join",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-12T03:00:00+05:30",
+      "end": "2026-10-12T03:24:00+05:30",
+      "duration_min": 24,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_silver_sales_join"
+    },
+    {
+      "run_id": "run-1012-transform-gold-sales",
+      "pipeline": "pl_transform_gold_sales",
+      "activity": "Run_nb_gold_sales_fact",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-12T03:45:00+05:30",
+      "end": "2026-10-12T04:23:00+05:30",
+      "duration_min": 38,
+      "rows_read": 9100000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_gold_sales_fact"
+    },
+    {
+      "run_id": "run-1012-load-gold-finance",
+      "pipeline": "pl_load_gold_finance",
+      "activity": "Write_Fact_Finance",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-12T04:40:00+05:30",
+      "end": "2026-10-12T04:51:00+05:30",
+      "duration_min": 11,
+      "rows_read": 640000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_finance"
+      ]
+    },
+    {
+      "run_id": "run-1012-load-snowflake-reporting",
+      "pipeline": "pl_load_snowflake_reporting",
+      "activity": "Load_Reporting_Marts",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-12T05:00:00+05:30",
+      "end": "2026-10-12T05:14:00+05:30",
+      "duration_min": 14,
+      "rows_read": 2300000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_snowflake_reporting"
+      ]
+    },
+    {
+      "run_id": "run-1013-ingest-customers",
+      "pipeline": "pl_ingest_customers",
+      "activity": "Copy_Customers_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-13T02:15:00+05:30",
+      "end": "2026-10-13T02:21:00+05:30",
+      "duration_min": 6,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_crm"
+      ],
+      "dataset": "customers"
+    },
+    {
+      "run_id": "run-1013-ingest-inventory",
+      "pipeline": "pl_ingest_inventory",
+      "activity": "Copy_Inventory_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-13T02:15:00+05:30",
+      "end": "2026-10-13T02:22:00+05:30",
+      "duration_min": 7,
+      "rows_read": 860000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "inventory"
+    },
+    {
+      "run_id": "run-1013-ingest-sales",
+      "pipeline": "pl_ingest_sales",
+      "activity": "Copy_Sales_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-13T02:15:00+05:30",
+      "end": "2026-10-13T02:24:00+05:30",
+      "duration_min": 9,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "sales",
+      "source_file": "landing/sales/sales_20261013.csv",
+      "file_md5": "019223a1c0"
+    },
+    {
+      "run_id": "run-1013-ingest-stores",
+      "pipeline": "pl_ingest_stores",
+      "activity": "Copy_Stores_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-13T02:20:00+05:30",
+      "end": "2026-10-13T02:22:00+05:30",
+      "duration_min": 2,
+      "rows_read": 412,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "stores"
+    },
+    {
+      "run_id": "run-1013-ingest-products",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-13T02:25:00+05:30",
+      "end": "2026-10-13T02:29:00+05:30",
+      "duration_min": 4,
+      "rows_read": 48500,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products"
+    },
+    {
+      "run_id": "run-1013-ingest-onprem-branches",
+      "pipeline": "pl_ingest_onprem_branches",
+      "activity": "Copy_Branch_Master",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-13T02:30:00+05:30",
+      "end": "2026-10-13T02:35:00+05:30",
+      "duration_min": 5,
+      "rows_read": 2150,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sqlserver_onprem_branches"
+      ],
+      "dataset": "branches"
+    },
+    {
+      "run_id": "run-1013-transform-silver-customers",
+      "pipeline": "pl_transform_silver_customers",
+      "activity": "Run_nb_silver_customers",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-13T03:00:00+05:30",
+      "end": "2026-10-13T03:08:00+05:30",
+      "duration_min": 8,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "dataset": "customers",
+      "databricks_job": "nb_silver_customers"
+    },
+    {
+      "run_id": "run-1013-transform-silver-sales",
+      "pipeline": "pl_transform_silver_sales",
+      "activity": "Run_nb_silver_sales_join",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-13T03:00:00+05:30",
+      "end": "2026-10-13T03:24:00+05:30",
+      "duration_min": 24,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_silver_sales_join"
+    },
+    {
+      "run_id": "run-1013-transform-gold-sales",
+      "pipeline": "pl_transform_gold_sales",
+      "activity": "Run_nb_gold_sales_fact",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-13T03:45:00+05:30",
+      "end": "2026-10-13T04:26:00+05:30",
+      "duration_min": 41,
+      "rows_read": 9600000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_gold_sales_fact"
+    },
+    {
+      "run_id": "run-1013-load-gold-finance",
+      "pipeline": "pl_load_gold_finance",
+      "activity": "Write_Fact_Finance",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-13T04:40:00+05:30",
+      "end": "2026-10-13T04:51:00+05:30",
+      "duration_min": 11,
+      "rows_read": 640000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_finance"
+      ]
+    },
+    {
+      "run_id": "run-1013-load-snowflake-reporting",
+      "pipeline": "pl_load_snowflake_reporting",
+      "activity": "Load_Reporting_Marts",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-13T05:00:00+05:30",
+      "end": "2026-10-13T05:14:00+05:30",
+      "duration_min": 14,
+      "rows_read": 2300000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_snowflake_reporting"
+      ]
+    },
+    {
+      "run_id": "run-1014-ingest-customers",
+      "pipeline": "pl_ingest_customers",
+      "activity": "Copy_Customers_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-14T02:15:00+05:30",
+      "end": "2026-10-14T02:21:00+05:30",
+      "duration_min": 6,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_crm"
+      ],
+      "dataset": "customers"
+    },
+    {
+      "run_id": "run-1014-ingest-inventory",
+      "pipeline": "pl_ingest_inventory",
+      "activity": "Copy_Inventory_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-14T02:15:00+05:30",
+      "end": "2026-10-14T02:22:00+05:30",
+      "duration_min": 7,
+      "rows_read": 860000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "inventory"
+    },
+    {
+      "run_id": "run-1014-ingest-sales",
+      "pipeline": "pl_ingest_sales",
+      "activity": "Copy_Sales_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-14T02:15:00+05:30",
+      "end": "2026-10-14T02:24:00+05:30",
+      "duration_min": 9,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "sales",
+      "source_file": "landing/sales/sales_20261014.csv",
+      "file_md5": "01b112a1c0"
+    },
+    {
+      "run_id": "run-1014-ingest-stores",
+      "pipeline": "pl_ingest_stores",
+      "activity": "Copy_Stores_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-14T02:20:00+05:30",
+      "end": "2026-10-14T02:22:00+05:30",
+      "duration_min": 2,
+      "rows_read": 412,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "stores"
+    },
+    {
+      "run_id": "run-1014-ingest-products-a",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-14T02:25:00+05:30",
+      "end": "2026-10-14T02:26:12+05:30",
+      "duration_min": 1.2,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products",
+      "error_code": "SqlFailedToConnect",
+      "error_message": "ErrorCode=SqlFailedToConnect, A connection was successfully established with the server, but then an error occurred during the pre-login handshake. (provider: TCP Provider, error: 35 - An internal exception was caught) An existing connection was forcibly closed by the remote host."
+    },
+    {
+      "run_id": "run-1014-ingest-onprem-branches",
+      "pipeline": "pl_ingest_onprem_branches",
+      "activity": "Copy_Branch_Master",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-14T02:30:00+05:30",
+      "end": "2026-10-14T02:35:00+05:30",
+      "duration_min": 5,
+      "rows_read": 2150,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sqlserver_onprem_branches"
+      ],
+      "dataset": "branches"
+    },
+    {
+      "run_id": "run-1014-ingest-products-b",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-14T02:55:00+05:30",
+      "end": "2026-10-14T02:59:00+05:30",
+      "duration_min": 4,
+      "rows_read": 48500,
+      "triggered_by": "manual rerun",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products"
+    },
+    {
+      "run_id": "run-1014-transform-silver-customers",
+      "pipeline": "pl_transform_silver_customers",
+      "activity": "Run_nb_silver_customers",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-14T03:00:00+05:30",
+      "end": "2026-10-14T03:08:00+05:30",
+      "duration_min": 8,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "dataset": "customers",
+      "databricks_job": "nb_silver_customers"
+    },
+    {
+      "run_id": "run-1014-transform-silver-sales",
+      "pipeline": "pl_transform_silver_sales",
+      "activity": "Run_nb_silver_sales_join",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-14T03:00:00+05:30",
+      "end": "2026-10-14T03:24:00+05:30",
+      "duration_min": 24,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_silver_sales_join"
+    },
+    {
+      "run_id": "run-1014-transform-gold-sales",
+      "pipeline": "pl_transform_gold_sales",
+      "activity": "Run_nb_gold_sales_fact",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-14T03:45:00+05:30",
+      "end": "2026-10-14T04:29:00+05:30",
+      "duration_min": 44,
+      "rows_read": 10100000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_gold_sales_fact"
+    },
+    {
+      "run_id": "run-1014-load-gold-finance",
+      "pipeline": "pl_load_gold_finance",
+      "activity": "Write_Fact_Finance",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-14T04:40:00+05:30",
+      "end": "2026-10-14T04:51:00+05:30",
+      "duration_min": 11,
+      "rows_read": 640000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_finance"
+      ]
+    },
+    {
+      "run_id": "run-1014-load-snowflake-reporting",
+      "pipeline": "pl_load_snowflake_reporting",
+      "activity": "Load_Reporting_Marts",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-14T05:00:00+05:30",
+      "end": "2026-10-14T05:14:00+05:30",
+      "duration_min": 14,
+      "rows_read": 2300000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_snowflake_reporting"
+      ]
+    },
+    {
+      "run_id": "run-1015-ingest-customers",
+      "pipeline": "pl_ingest_customers",
+      "activity": "Copy_Customers_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-15T02:15:00+05:30",
+      "end": "2026-10-15T02:21:00+05:30",
+      "duration_min": 6,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_crm"
+      ],
+      "dataset": "customers"
+    },
+    {
+      "run_id": "run-1015-ingest-inventory",
+      "pipeline": "pl_ingest_inventory",
+      "activity": "Copy_Inventory_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-15T02:15:00+05:30",
+      "end": "2026-10-15T02:22:00+05:30",
+      "duration_min": 7,
+      "rows_read": 860000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "inventory"
+    },
+    {
+      "run_id": "run-1015-ingest-sales",
+      "pipeline": "pl_ingest_sales",
+      "activity": "Copy_Sales_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-15T02:15:00+05:30",
+      "end": "2026-10-15T02:24:00+05:30",
+      "duration_min": 9,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "sales",
+      "source_file": "landing/sales/sales_20261015.csv",
+      "file_md5": "01d001a1c0"
+    },
+    {
+      "run_id": "run-1015-ingest-stores",
+      "pipeline": "pl_ingest_stores",
+      "activity": "Copy_Stores_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-15T02:20:00+05:30",
+      "end": "2026-10-15T02:22:00+05:30",
+      "duration_min": 2,
+      "rows_read": 412,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "stores"
+    },
+    {
+      "run_id": "run-1015-ingest-products",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-15T02:25:00+05:30",
+      "end": "2026-10-15T02:29:00+05:30",
+      "duration_min": 4,
+      "rows_read": 48500,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products"
+    },
+    {
+      "run_id": "run-1015-ingest-onprem-branches",
+      "pipeline": "pl_ingest_onprem_branches",
+      "activity": "Copy_Branch_Master",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-15T02:30:00+05:30",
+      "end": "2026-10-15T02:35:00+05:30",
+      "duration_min": 5,
+      "rows_read": 2150,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sqlserver_onprem_branches"
+      ],
+      "dataset": "branches"
+    },
+    {
+      "run_id": "run-1015-transform-silver-customers",
+      "pipeline": "pl_transform_silver_customers",
+      "activity": "Run_nb_silver_customers",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-15T03:00:00+05:30",
+      "end": "2026-10-15T03:08:00+05:30",
+      "duration_min": 8,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "dataset": "customers",
+      "databricks_job": "nb_silver_customers"
+    },
+    {
+      "run_id": "run-1015-transform-silver-sales",
+      "pipeline": "pl_transform_silver_sales",
+      "activity": "Run_nb_silver_sales_join",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-15T03:00:00+05:30",
+      "end": "2026-10-15T03:24:00+05:30",
+      "duration_min": 24,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_silver_sales_join"
+    },
+    {
+      "run_id": "run-1015-transform-gold-sales",
+      "pipeline": "pl_transform_gold_sales",
+      "activity": "Run_nb_gold_sales_fact",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-15T03:45:00+05:30",
+      "end": "2026-10-15T04:32:00+05:30",
+      "duration_min": 47,
+      "rows_read": 10700000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_gold_sales_fact"
+    },
+    {
+      "run_id": "run-1015-load-gold-finance",
+      "pipeline": "pl_load_gold_finance",
+      "activity": "Write_Fact_Finance",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-15T04:40:00+05:30",
+      "end": "2026-10-15T04:51:00+05:30",
+      "duration_min": 11,
+      "rows_read": 640000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_finance"
+      ]
+    },
+    {
+      "run_id": "run-1015-load-snowflake-reporting",
+      "pipeline": "pl_load_snowflake_reporting",
+      "activity": "Load_Reporting_Marts",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-15T05:00:00+05:30",
+      "end": "2026-10-15T05:14:00+05:30",
+      "duration_min": 14,
+      "rows_read": 2300000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_snowflake_reporting"
+      ]
+    },
+    {
+      "run_id": "run-1016-ingest-customers",
+      "pipeline": "pl_ingest_customers",
+      "activity": "Copy_Customers_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-16T02:15:00+05:30",
+      "end": "2026-10-16T02:21:00+05:30",
+      "duration_min": 6,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_crm"
+      ],
+      "dataset": "customers"
+    },
+    {
+      "run_id": "run-1016-ingest-inventory",
+      "pipeline": "pl_ingest_inventory",
+      "activity": "Copy_Inventory_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-16T02:15:00+05:30",
+      "end": "2026-10-16T02:22:00+05:30",
+      "duration_min": 7,
+      "rows_read": 860000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "inventory"
+    },
+    {
+      "run_id": "run-1016-ingest-sales",
+      "pipeline": "pl_ingest_sales",
+      "activity": "Copy_Sales_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-16T02:15:00+05:30",
+      "end": "2026-10-16T02:24:00+05:30",
+      "duration_min": 9,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "sales",
+      "source_file": "landing/sales/sales_20261016.csv",
+      "file_md5": "01eef0a1c0"
+    },
+    {
+      "run_id": "run-1016-ingest-stores",
+      "pipeline": "pl_ingest_stores",
+      "activity": "Copy_Stores_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-16T02:20:00+05:30",
+      "end": "2026-10-16T02:22:00+05:30",
+      "duration_min": 2,
+      "rows_read": 412,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "stores"
+    },
+    {
+      "run_id": "run-1016-ingest-products",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-16T02:25:00+05:30",
+      "end": "2026-10-16T02:29:00+05:30",
+      "duration_min": 4,
+      "rows_read": 48500,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products"
+    },
+    {
+      "run_id": "run-1016-ingest-onprem-branches",
+      "pipeline": "pl_ingest_onprem_branches",
+      "activity": "Copy_Branch_Master",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-16T02:30:00+05:30",
+      "end": "2026-10-16T02:35:00+05:30",
+      "duration_min": 5,
+      "rows_read": 2150,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sqlserver_onprem_branches"
+      ],
+      "dataset": "branches"
+    },
+    {
+      "run_id": "run-1016-transform-silver-customers",
+      "pipeline": "pl_transform_silver_customers",
+      "activity": "Run_nb_silver_customers",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-16T03:00:00+05:30",
+      "end": "2026-10-16T03:08:00+05:30",
+      "duration_min": 8,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "dataset": "customers",
+      "databricks_job": "nb_silver_customers"
+    },
+    {
+      "run_id": "run-1016-transform-silver-sales",
+      "pipeline": "pl_transform_silver_sales",
+      "activity": "Run_nb_silver_sales_join",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-16T03:00:00+05:30",
+      "end": "2026-10-16T03:24:00+05:30",
+      "duration_min": 24,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_silver_sales_join"
+    },
+    {
+      "run_id": "run-1016-transform-gold-sales",
+      "pipeline": "pl_transform_gold_sales",
+      "activity": "Run_nb_gold_sales_fact",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-16T03:45:00+05:30",
+      "end": "2026-10-16T04:36:00+05:30",
+      "duration_min": 51,
+      "rows_read": 11300000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_gold_sales_fact"
+    },
+    {
+      "run_id": "run-1016-load-gold-finance",
+      "pipeline": "pl_load_gold_finance",
+      "activity": "Write_Fact_Finance",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-16T04:40:00+05:30",
+      "end": "2026-10-16T04:51:00+05:30",
+      "duration_min": 11,
+      "rows_read": 640000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_finance"
+      ]
+    },
+    {
+      "run_id": "run-1016-load-snowflake-reporting",
+      "pipeline": "pl_load_snowflake_reporting",
+      "activity": "Load_Reporting_Marts",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-16T05:00:00+05:30",
+      "end": "2026-10-16T05:14:00+05:30",
+      "duration_min": 14,
+      "rows_read": 2300000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_snowflake_reporting"
+      ]
+    },
+    {
+      "run_id": "run-1017-ingest-customers",
+      "pipeline": "pl_ingest_customers",
+      "activity": "Copy_Customers_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-17T02:15:00+05:30",
+      "end": "2026-10-17T02:21:00+05:30",
+      "duration_min": 6,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_crm"
+      ],
+      "dataset": "customers"
+    },
+    {
+      "run_id": "run-1017-ingest-inventory",
+      "pipeline": "pl_ingest_inventory",
+      "activity": "Copy_Inventory_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-17T02:15:00+05:30",
+      "end": "2026-10-17T02:22:00+05:30",
+      "duration_min": 7,
+      "rows_read": 860000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "inventory"
+    },
+    {
+      "run_id": "run-1017-ingest-sales",
+      "pipeline": "pl_ingest_sales",
+      "activity": "Copy_Sales_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-17T02:15:00+05:30",
+      "end": "2026-10-17T02:24:00+05:30",
+      "duration_min": 9,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "sales",
+      "source_file": "landing/sales/sales_20261017.csv",
+      "file_md5": "020ddfa1c0"
+    },
+    {
+      "run_id": "run-1017-ingest-stores",
+      "pipeline": "pl_ingest_stores",
+      "activity": "Copy_Stores_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-17T02:20:00+05:30",
+      "end": "2026-10-17T02:22:00+05:30",
+      "duration_min": 2,
+      "rows_read": 412,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "stores"
+    },
+    {
+      "run_id": "run-1017-ingest-products-a",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-17T02:25:00+05:30",
+      "end": "2026-10-17T02:26:12+05:30",
+      "duration_min": 1.2,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products",
+      "error_code": "SqlFailedToConnect",
+      "error_message": "ErrorCode=SqlFailedToConnect, A connection was successfully established with the server, but then an error occurred during the pre-login handshake. (provider: TCP Provider, error: 35 - An internal exception was caught) An existing connection was forcibly closed by the remote host."
+    },
+    {
+      "run_id": "run-1017-ingest-onprem-branches",
+      "pipeline": "pl_ingest_onprem_branches",
+      "activity": "Copy_Branch_Master",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-17T02:30:00+05:30",
+      "end": "2026-10-17T02:35:00+05:30",
+      "duration_min": 5,
+      "rows_read": 2150,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sqlserver_onprem_branches"
+      ],
+      "dataset": "branches"
+    },
+    {
+      "run_id": "run-1017-ingest-products-b",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-17T02:55:00+05:30",
+      "end": "2026-10-17T02:59:00+05:30",
+      "duration_min": 4,
+      "rows_read": 48500,
+      "triggered_by": "manual rerun",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products"
+    },
+    {
+      "run_id": "run-1017-transform-silver-customers",
+      "pipeline": "pl_transform_silver_customers",
+      "activity": "Run_nb_silver_customers",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-17T03:00:00+05:30",
+      "end": "2026-10-17T03:08:00+05:30",
+      "duration_min": 8,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "dataset": "customers",
+      "databricks_job": "nb_silver_customers"
+    },
+    {
+      "run_id": "run-1017-transform-silver-sales",
+      "pipeline": "pl_transform_silver_sales",
+      "activity": "Run_nb_silver_sales_join",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-17T03:00:00+05:30",
+      "end": "2026-10-17T03:24:00+05:30",
+      "duration_min": 24,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_silver_sales_join"
+    },
+    {
+      "run_id": "run-1017-transform-gold-sales",
+      "pipeline": "pl_transform_gold_sales",
+      "activity": "Run_nb_gold_sales_fact",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-17T03:45:00+05:30",
+      "end": "2026-10-17T04:40:00+05:30",
+      "duration_min": 55,
+      "rows_read": 11900000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_gold_sales_fact"
+    },
+    {
+      "run_id": "run-1017-load-gold-finance",
+      "pipeline": "pl_load_gold_finance",
+      "activity": "Write_Fact_Finance",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-17T04:40:00+05:30",
+      "end": "2026-10-17T04:51:00+05:30",
+      "duration_min": 11,
+      "rows_read": 640000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_finance"
+      ]
+    },
+    {
+      "run_id": "run-1017-load-snowflake-reporting",
+      "pipeline": "pl_load_snowflake_reporting",
+      "activity": "Load_Reporting_Marts",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-17T05:00:00+05:30",
+      "end": "2026-10-17T05:14:00+05:30",
+      "duration_min": 14,
+      "rows_read": 2300000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_snowflake_reporting"
+      ]
+    },
+    {
+      "run_id": "run-1018-ingest-customers",
+      "pipeline": "pl_ingest_customers",
+      "activity": "Copy_Customers_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-18T02:15:00+05:30",
+      "end": "2026-10-18T02:21:00+05:30",
+      "duration_min": 6,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_crm"
+      ],
+      "dataset": "customers"
+    },
+    {
+      "run_id": "run-1018-ingest-inventory",
+      "pipeline": "pl_ingest_inventory",
+      "activity": "Copy_Inventory_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-18T02:15:00+05:30",
+      "end": "2026-10-18T02:22:00+05:30",
+      "duration_min": 7,
+      "rows_read": 860000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "inventory"
+    },
+    {
+      "run_id": "run-1018-ingest-sales",
+      "pipeline": "pl_ingest_sales",
+      "activity": "Copy_Sales_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-18T02:15:00+05:30",
+      "end": "2026-10-18T02:24:00+05:30",
+      "duration_min": 9,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "sales",
+      "source_file": "landing/sales/sales_20261018.csv",
+      "file_md5": "9f2c41ab77d0"
+    },
+    {
+      "run_id": "run-1018-ingest-stores",
+      "pipeline": "pl_ingest_stores",
+      "activity": "Copy_Stores_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-18T02:20:00+05:30",
+      "end": "2026-10-18T02:22:00+05:30",
+      "duration_min": 2,
+      "rows_read": 412,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "stores"
+    },
+    {
+      "run_id": "run-1018-ingest-products",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-18T02:25:00+05:30",
+      "end": "2026-10-18T02:29:00+05:30",
+      "duration_min": 4,
+      "rows_read": 48500,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products"
+    },
+    {
+      "run_id": "run-1018-ingest-onprem-branches",
+      "pipeline": "pl_ingest_onprem_branches",
+      "activity": "Copy_Branch_Master",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-18T02:30:00+05:30",
+      "end": "2026-10-18T02:35:00+05:30",
+      "duration_min": 5,
+      "rows_read": 2150,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sqlserver_onprem_branches"
+      ],
+      "dataset": "branches"
+    },
+    {
+      "run_id": "run-1018-transform-silver-customers",
+      "pipeline": "pl_transform_silver_customers",
+      "activity": "Run_nb_silver_customers",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-18T03:00:00+05:30",
+      "end": "2026-10-18T03:08:00+05:30",
+      "duration_min": 8,
+      "rows_read": 182000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "dataset": "customers",
+      "databricks_job": "nb_silver_customers"
+    },
+    {
+      "run_id": "run-1018-transform-silver-sales",
+      "pipeline": "pl_transform_silver_sales",
+      "activity": "Run_nb_silver_sales_join",
+      "activity_type": "DatabricksNotebook",
+      "status": "Succeeded",
+      "start": "2026-10-18T03:00:00+05:30",
+      "end": "2026-10-18T03:24:00+05:30",
+      "duration_min": 24,
+      "rows_read": 1240000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_silver_sales_join"
+    },
+    {
+      "run_id": "run-1018-transform-gold-sales",
+      "pipeline": "pl_transform_gold_sales",
+      "activity": "Run_nb_gold_sales_fact",
+      "activity_type": "DatabricksNotebook",
+      "status": "Failed",
+      "start": "2026-10-18T03:45:00+05:30",
+      "end": "2026-10-18T04:45:00+05:30",
+      "duration_min": 60,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_gold_sales_fact",
+      "timeout_policy": "01:00:00",
+      "error_code": "ActivityTimedOut",
+      "error_message": "Operation on target Run_nb_gold_sales_fact failed: Activity timed out after 01:00:00. The activity 'timeout' policy is set to 01:00:00."
+    },
+    {
+      "run_id": "run-1018-load-gold-finance",
+      "pipeline": "pl_load_gold_finance",
+      "activity": "Write_Fact_Finance",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-18T04:40:00+05:30",
+      "end": "2026-10-18T04:51:00+05:30",
+      "duration_min": 11,
+      "rows_read": 640000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_finance"
+      ]
+    },
+    {
+      "run_id": "run-1018-load-snowflake-reporting",
+      "pipeline": "pl_load_snowflake_reporting",
+      "activity": "Load_Reporting_Marts",
+      "activity_type": "Copy",
+      "status": "Succeeded",
+      "start": "2026-10-18T05:00:00+05:30",
+      "end": "2026-10-18T05:14:00+05:30",
+      "duration_min": 14,
+      "rows_read": 2300000,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_snowflake_reporting"
+      ]
+    },
+    {
+      "run_id": "run-1019-ingest-customers",
+      "pipeline": "pl_ingest_customers",
+      "activity": "Copy_Customers_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-19T02:15:00+05:30",
+      "end": "2026-10-19T02:15:48+05:30",
+      "duration_min": 0.8,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_crm"
+      ],
+      "dataset": "customers",
+      "error_code": "AdlsGen2OperationFailed",
+      "error_message": "ErrorCode=AdlsGen2OperationFailed, Message=ADLS Gen2 operation failed for: Operation returned an invalid status code 'Unauthorized'. Account: 'stcrmlanding'. FileSystem: 'crm'. ErrorCode: 'InvalidAuthenticationInfo'. Message: 'Server failed to authenticate the request.'"
+    },
+    {
+      "run_id": "run-1019-ingest-inventory",
+      "pipeline": "pl_ingest_inventory",
+      "activity": "Copy_Inventory_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-19T02:15:00+05:30",
+      "end": "2026-10-19T02:15:18+05:30",
+      "duration_min": 0.3,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "inventory",
+      "source_file": "landing/inventory/inventory_20261019.csv",
+      "error_code": "UserErrorFileNotFound",
+      "error_message": "ErrorCode=UserErrorFileNotFound, Message=Path not found: 'landing/inventory/inventory_20261019.csv'. The specified path does not exist."
+    },
+    {
+      "run_id": "run-1019-ingest-sales",
+      "pipeline": "pl_ingest_sales",
+      "activity": "Copy_Sales_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-19T02:15:00+05:30",
+      "end": "2026-10-19T02:24:24+05:30",
+      "duration_min": 9.4,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "sales",
+      "source_file": "landing/sales/sales_20261018_v2.csv",
+      "file_md5": "9f2c41ab77d0",
+      "error_code": "DataQualityCheckFailed",
+      "error_message": "Data quality check 'dq_unique_transaction_id' (severity: Critical) failed on bronze.sales: 1,186,204 transaction_id values already exist in bronze.sales for the same business date. Batch stopped before Silver."
+    },
+    {
+      "run_id": "run-1019-ingest-stores",
+      "pipeline": "pl_ingest_stores",
+      "activity": "Copy_Stores_To_Bronze",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-19T02:20:00+05:30",
+      "end": "2026-10-19T02:20:30+05:30",
+      "duration_min": 0.5,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_retail"
+      ],
+      "dataset": "stores",
+      "source_file": "landing/stores/stores_20261019.csv",
+      "error_code": "DelimitedTextColumnCountMismatch",
+      "error_message": "ErrorCode=DelimitedTextColumnCountMismatch, Message=Column count mismatch in file 'landing/stores/stores_20261019.csv': found 9 columns but the dataset schema defines 8."
+    },
+    {
+      "run_id": "run-1019-ingest-products",
+      "pipeline": "pl_ingest_products",
+      "activity": "Copy_Products_From_SQL",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-19T02:25:00+05:30",
+      "end": "2026-10-19T02:26:18+05:30",
+      "duration_min": 1.3,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sql_product_master",
+        "ls_adls_retail"
+      ],
+      "dataset": "products",
+      "error_code": "SqlFailedToConnect",
+      "error_message": "ErrorCode=SqlFailedToConnect, A connection was successfully established with the server, but then an error occurred during the pre-login handshake. (provider: TCP Provider, error: 35 - An internal exception was caught) An existing connection was forcibly closed by the remote host."
+    },
+    {
+      "run_id": "run-1019-ingest-onprem-branches",
+      "pipeline": "pl_ingest_onprem_branches",
+      "activity": "Copy_Branch_Master",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-19T02:30:00+05:30",
+      "end": "2026-10-19T02:30:12+05:30",
+      "duration_min": 0.2,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_sqlserver_onprem_branches"
+      ],
+      "dataset": "branches",
+      "error_code": "UserErrorSelfHostedIrOffline",
+      "error_message": "ErrorCode=UserErrorSelfHostedIrOffline, Message=The Self-hosted Integration Runtime 'shir-onprem-01' used by linked service 'ls_sqlserver_onprem_branches' is offline. Please check the integration runtime status."
+    },
+    {
+      "run_id": "run-1019-transform-silver-customers",
+      "pipeline": "pl_transform_silver_customers",
+      "activity": "Run_nb_silver_customers",
+      "activity_type": "DatabricksNotebook",
+      "status": "Failed",
+      "start": "2026-10-19T03:00:00+05:30",
+      "end": "2026-10-19T03:06:30+05:30",
+      "duration_min": 6.5,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "dataset": "customers",
+      "databricks_job": "nb_silver_customers",
+      "error_code": "DataQualityCheckFailed",
+      "error_message": "Data quality check 'dq_null_rate_email' (severity: Critical) failed on silver.customers: null rate for mandatory column 'email' is 7.4% (threshold 0%). Batch stopped before Gold."
+    },
+    {
+      "run_id": "run-1019-transform-silver-sales",
+      "pipeline": "pl_transform_silver_sales",
+      "activity": "Run_nb_silver_sales_join",
+      "activity_type": "DatabricksNotebook",
+      "status": "Failed",
+      "start": "2026-10-19T03:00:00+05:30",
+      "end": "2026-10-19T03:31:00+05:30",
+      "duration_min": 31,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_silver_sales_join",
+      "error_code": "DatabricksJobFailed",
+      "error_message": "Operation on target Run_nb_silver_sales_join failed: Job run failed. org.apache.spark.SparkException: Job aborted due to stage failure: Task 187 in stage 14.0 failed 4 times, most recent failure: ExecutorLostFailure (executor 7 exited caused by one of the running tasks) Reason: Container killed for exceeding memory limits. java.lang.OutOfMemoryError: Java heap space"
+    },
+    {
+      "run_id": "run-1019-transform-gold-sales",
+      "pipeline": "pl_transform_gold_sales",
+      "activity": "Wait_For_Silver_Sales",
+      "activity_type": "ExecutePipeline",
+      "status": "Failed",
+      "start": "2026-10-19T03:45:00+05:30",
+      "end": "2026-10-19T03:45:12+05:30",
+      "duration_min": 0.2,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_databricks_retail"
+      ],
+      "databricks_job": "nb_gold_sales_fact",
+      "upstream_run_id": "run-1019-transform-silver-sales",
+      "error_code": "UpstreamDependencyFailed",
+      "error_message": "Operation on target Wait_For_Silver_Sales failed: Dependency check failed. Upstream pipeline 'pl_transform_silver_sales' run 'run-1019-transform-silver-sales' finished with status 'Failed'."
+    },
+    {
+      "run_id": "run-1019-load-gold-finance",
+      "pipeline": "pl_load_gold_finance",
+      "activity": "Write_Fact_Finance",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-19T04:40:00+05:30",
+      "end": "2026-10-19T04:41:06+05:30",
+      "duration_min": 1.1,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_adls_finance"
+      ],
+      "error_code": "AdlsGen2OperationFailed",
+      "error_message": "ErrorCode=AdlsGen2OperationFailed, Message=ADLS Gen2 operation failed for: Operation returned an invalid status code 'Forbidden'. Account: 'stretailgold'. FileSystem: 'gold'. Path: 'finance/fact_finance/'. ErrorCode: 'AuthorizationPermissionMismatch'. Message: 'This request is not authorized to perform this operation using this permission.'"
+    },
+    {
+      "run_id": "run-1019-load-snowflake-reporting",
+      "pipeline": "pl_load_snowflake_reporting",
+      "activity": "Load_Reporting_Marts",
+      "activity_type": "Copy",
+      "status": "Failed",
+      "start": "2026-10-19T05:00:00+05:30",
+      "end": "2026-10-19T05:00:24+05:30",
+      "duration_min": 0.4,
+      "rows_read": 0,
+      "triggered_by": "schedule",
+      "linked_services": [
+        "ls_snowflake_reporting"
+      ],
+      "error_code": "SnowflakeExecutionFailed",
+      "error_message": "ErrorCode=SnowflakeExecutionFailed, Message=Failed to execute the query command during write operation. SQL execution error: Warehouse 'WH_REPORTING' cannot be resumed because resource monitor 'RM_MONTHLY_REPORTING' has exceeded its quota."
+    }
+  ]
+}

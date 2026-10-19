@@ -1,0 +1,86 @@
+{
+  "ls_adls_crm": {
+    "type": "AzureBlobFS (ADLS Gen2)",
+    "account": "stcrmlanding",
+    "auth": "ServicePrincipal",
+    "service_principal": "sp-crm-ingest",
+    "secret_reference": "kv-retail-prod/sp-crm-ingest-secret",
+    "secret_expires": "2026-10-18T23:59:00+05:30",
+    "secret_last_rotated": "2025-10-19",
+    "test_connection": "Failed: AADSTS7000222: The provided client secret keys for app 'sp-crm-ingest' are expired.",
+    "recent_changes": []
+  },
+  "ls_adls_retail": {
+    "type": "AzureBlobFS (ADLS Gen2)",
+    "account": "stretaillake",
+    "auth": "ManagedIdentity",
+    "identity": "adf-retail-prod",
+    "test_connection": "Succeeded",
+    "recent_changes": []
+  },
+  "ls_adls_finance": {
+    "type": "AzureBlobFS (ADLS Gen2)",
+    "account": "stretailgold",
+    "auth": "ManagedIdentity",
+    "identity": "adf-retail-prod",
+    "test_connection": "Failed: 403 AuthorizationPermissionMismatch on 'gold/finance'",
+    "recent_changes": [
+      {
+        "date": "2026-10-18",
+        "by": "cloud-governance",
+        "change": "IAM cleanup removed role 'Storage Blob Data Contributor' for identity 'adf-retail-prod' on container 'gold' (ticket GOV-5521)."
+      }
+    ]
+  },
+  "ls_sql_product_master": {
+    "type": "AzureSqlDatabase",
+    "server": "sql-product-master.database.windows.net",
+    "auth": "ManagedIdentity",
+    "test_connection": "Succeeded (checked 2026-10-19 06:10)",
+    "notes": "Network team reported short TCP resets on the ExpressRoute gateway between 02:20 and 02:35 on 2026-10-14, 2026-10-17 and 2026-10-19 (maintenance window).",
+    "recent_changes": []
+  },
+  "ls_sqlserver_onprem_branches": {
+    "type": "SqlServer (on-premises)",
+    "integration_runtime": "shir-onprem-01",
+    "auth": "SqlAuthentication",
+    "test_connection": "Failed: integration runtime offline",
+    "integration_runtime_status": {
+      "name": "shir-onprem-01",
+      "state": "Offline",
+      "node": "vm-shir-01",
+      "last_heartbeat": "2026-10-19T00:47:00+05:30",
+      "node_events": [
+        "2026-10-19 00:45 vm-shir-01 restarted for Windows patching (KB5049981)",
+        "Service 'DIAHostService' startup type is Manual and did not start after reboot"
+      ]
+    },
+    "recent_changes": []
+  },
+  "ls_snowflake_reporting": {
+    "type": "Snowflake",
+    "account": "retail-analytics.central-india.azure",
+    "warehouse": "WH_REPORTING",
+    "auth": "KeyPair",
+    "test_connection": "Succeeded (connection only; warehouse is suspended)",
+    "warehouse_state": "SUSPENDED",
+    "resource_monitor": {
+      "name": "RM_MONTHLY_REPORTING",
+      "credit_quota": 500,
+      "credits_used": 500,
+      "used_percent": 100,
+      "notify_at_percent": 80,
+      "suspend_at_percent": 100,
+      "notified": "2026-10-12 to platform-alerts@ (no action recorded)",
+      "resets_on": "2026-11-01"
+    },
+    "recent_changes": []
+  },
+  "ls_databricks_retail": {
+    "type": "AzureDatabricks",
+    "workspace": "adb-retail-prod",
+    "auth": "ManagedIdentity",
+    "test_connection": "Succeeded",
+    "recent_changes": []
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "files": [
+    {
+      "path": "landing/sales/sales_20261017.csv",
+      "arrived": "2026-10-17T01:31:00+05:30",
+      "size_mb": 212,
+      "md5": "7c1e09d2b4a1"
+    },
+    {
+      "path": "landing/sales/sales_20261018.csv",
+      "arrived": "2026-10-18T01:32:00+05:30",
+      "size_mb": 219,
+      "md5": "9f2c41ab77d0"
+    },
+    {
+      "path": "landing/sales/sales_20261018_v2.csv",
+      "arrived": "2026-10-19T01:35:00+05:30",
+      "size_mb": 219,
+      "md5": "9f2c41ab77d0",
+      "sender_note": "Resent by POS export job after a retry on the source side."
+    },
+    {
+      "path": "landing/inventory/inventory_20261017.csv",
+      "arrived": "2026-10-17T01:42:00+05:30",
+      "size_mb": 47,
+      "md5": "a51d77c03e19"
+    },
+    {
+      "path": "landing/inventory/inventory_20261018.csv",
+      "arrived": "2026-10-18T01:39:00+05:30",
+      "size_mb": 47,
+      "md5": "c2f8e1a90b44"
+    },
+    {
+      "path": "landing/inventory/inventory_20261019.csv",
+      "arrived": "2026-10-19T03:05:00+05:30",
+      "size_mb": 48,
+      "md5": "e93b0d5f6a12",
+      "sender_note": "Warehouse system export delayed by month-end stock count."
+    },
+    {
+      "path": "landing/stores/stores_20261019.csv",
+      "arrived": "2026-10-19T01:50:00+05:30",
+      "size_mb": 0.1,
+      "md5": "41aa9c0e7d55"
+    },
+    {
+      "path": "landing/crm/customers_20261019.parquet",
+      "arrived": "2026-10-19T01:20:00+05:30",
+      "size_mb": 18,
+      "md5": "0be47c2d91f3"
+    }
+  ],
+  "arrival_slas_ist": {
+    "landing/sales/": "01:45",
+    "landing/inventory/": "02:00",
+    "landing/stores/": "02:00",
+    "landing/crm/": "01:45"
+  }
+}

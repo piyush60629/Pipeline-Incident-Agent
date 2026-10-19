@@ -1,0 +1,77 @@
+{
+  "nb_gold_sales_fact": {
+    "cluster": "job-cluster Standard_DS4_v2 x 6 workers",
+    "activity_timeout": "01:00:00",
+    "recent_runs": [
+      {
+        "date": "2026-10-12",
+        "duration_min": 38,
+        "input_rows": 9100000
+      },
+      {
+        "date": "2026-10-13",
+        "duration_min": 41,
+        "input_rows": 9600000
+      },
+      {
+        "date": "2026-10-14",
+        "duration_min": 44,
+        "input_rows": 10100000
+      },
+      {
+        "date": "2026-10-15",
+        "duration_min": 47,
+        "input_rows": 10700000
+      },
+      {
+        "date": "2026-10-16",
+        "duration_min": 51,
+        "input_rows": 11300000
+      },
+      {
+        "date": "2026-10-17",
+        "duration_min": 55,
+        "input_rows": 11900000
+      },
+      {
+        "date": "2026-10-18",
+        "duration_min": 60,
+        "input_rows": 12400000,
+        "status": "TimedOut"
+      }
+    ],
+    "notes": "Festive-season sales volume up ~36% in one week. gold.fact_sales is rewritten in full every run (not partitioned by transaction_date, no incremental MERGE)."
+  },
+  "nb_silver_sales_join": {
+    "cluster": "job-cluster Standard_DS3_v2 x 4 workers (14 GB each)",
+    "last_run": {
+      "date": "2026-10-19",
+      "status": "Failed",
+      "error": "ExecutorLostFailure / OutOfMemoryError",
+      "failed_stage": "stage 14 (join sales x stores on store_id)",
+      "task_input_median_mb": 118,
+      "task_input_max_mb": 9600,
+      "skewed_key": {
+        "column": "store_id",
+        "value": "S-0001 (online store)",
+        "share_of_rows": "41%"
+      }
+    },
+    "spark_conf": {
+      "spark.sql.adaptive.enabled": "true",
+      "spark.sql.adaptive.skewJoin.enabled": "false",
+      "spark.sql.autoBroadcastJoinThreshold": "-1"
+    },
+    "notes": "Online-store sales share jumped from 12% to 41% after the festive sale launch on 2026-10-18."
+  },
+  "nb_silver_customers": {
+    "cluster": "job-cluster Standard_DS3_v2 x 2 workers",
+    "last_run": {
+      "date": "2026-10-19",
+      "status": "Failed",
+      "error": "DataQualityCheckFailed dq_null_rate_email",
+      "duration_min": 6.5
+    },
+    "notes": "No performance issues."
+  }
+}

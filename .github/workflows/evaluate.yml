@@ -1,0 +1,102 @@
+name: Evaluate agent
+
+# Run from the Actions tab: Evaluate agent -> Run workflow.
+# Needs the repository secret GROQ_API_KEY (Settings -> Secrets and variables -> Actions).
+# GEMINI_API_KEY is optional (adds meaning-based knowledge search).
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Agent model on Groq"
+        type: choice
+        options: [openai/gpt-oss-120b, openai/gpt-oss-20b]
+        default: openai/gpt-oss-120b
+      cases:
+        description: "Case ids separated by spaces (empty = all 12)"
+        default: ""
+      delay:
+        description: "Seconds between incidents (free-tier per-minute limits)"
+        default: "20"
+      judge:
+        description: "Score root causes with an LLM judge (Qwen 3.8)"
+        type: boolean
+        default: true
+      label:
+        description: "Short note for history.csv"
+        default: "baseline"
+      commit_results:
+        description: "Commit results (eval/results and the README table)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: evaluate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run evaluation
+        timeout-minutes: 50
+        env:
+          PYTHONUNBUFFERED: "1"
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MODEL: ${{ inputs.model }}
+          CASES: ${{ inputs.cases }}
+          DELAY: ${{ inputs.delay }}
+          JUDGE: ${{ inputs.judge }}
+          LABEL: ${{ inputs.label }}
+        run: |
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "::error::Add a repository secret named GROQ_API_KEY first (Settings -> Secrets and variables -> Actions)."
+            exit 1
+          fi
+          extra=""
+          if [ -n "$CASES" ]; then extra="--cases $CASES"; fi
+          if [ "$JUDGE" != "true" ]; then extra="$extra --no-judge"; fi
+          set -o pipefail
+          if ! python evaluate.py --provider groq --model "$MODEL" --delay "$DELAY" --label "$LABEL" --update-readme $extra 2>&1 | tee eval-output.log; then
+            reason=$( (grep -E "ERROR" eval-output.log | tail -1; grep -E "Stopping|Set GROQ" eval-output.log | tail -1) | tr '\n' ' ' | cut -c1-700)
+            echo "::error title=Evaluation failed::${reason:-See the Run evaluation log for details.}"
+            exit 1
+          fi
+
+      - name: Show results in the run summary
+        if: always()
+        run: |
+          if [ -f eval/results/failed-run/latest.md ]; then
+            echo "## Run stopped early (partial results)" >> "$GITHUB_STEP_SUMMARY"
+            cat eval/results/failed-run/latest.md >> "$GITHUB_STEP_SUMMARY"
+          elif [ -f eval/results/latest.md ]; then
+            cat eval/results/latest.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Commit results
+        if: inputs.commit_results
+        env:
+          LABEL: ${{ inputs.label }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add eval/results README.md
+          if git diff --cached --quiet; then
+            echo "No result changes to commit."
+            exit 0
+          fi
+          git commit -m "Update evaluation results ($LABEL)"
+          git push
