@@ -1,0 +1,2 @@
+timestamp,label,provider,agent_model,judge_model,cases,errors,completion_rate,category_accuracy,action_accuracy,tool_recall,root_cause_score,avg_tool_calls,avg_seconds,forced_submit_rate
+2026-10-19 11:16 UTC,baseline,groq,openai/gpt-oss-120b,qwen/qwen3.8-27b,12,1,1.0,0.8182,0.9091,0.9545,0.8636,2.5455,21.6091,0.8182

@@ -57,7 +57,23 @@ The agent is evaluated on all 12 incidents (`eval/cases.json`). Each case has th
 | Tool calls, seconds, forced-submit rate | Efficiency and how often the agent needed to be stopped |
 
 <!-- EVAL_RESULTS_START -->
-_Results appear here after the first evaluation run (Actions → Evaluate agent → Run workflow)._
+**Latest results**
+
+- Run: 2026-10-19 11:16 UTC · 12 incidents · errors: 1  
+- Agent: `openai/gpt-oss-120b` via groq · judge: `qwen/qwen3.8-27b`
+
+| Metric | Score |
+|---|---|
+| Diagnosis completed | 100.0% |
+| Category accuracy | 81.8% |
+| Recommended action correct | 90.9% |
+| Evidence tool recall | 95.5% |
+| Root-cause score (LLM judge) | 86.4% |
+| Avg tool calls per incident | 2.5455 |
+| Avg seconds per incident | 21.6091 |
+| Forced to submit (budget or no tool call) | 81.8% |
+
+Per-incident results: `eval/results/latest.md`.
 <!-- EVAL_RESULTS_END -->
 
 ## Tech stack

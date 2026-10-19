@@ -1,0 +1,278 @@
+{
+  "config": {
+    "timestamp": "2026-10-19 11:16 UTC",
+    "label": "baseline",
+    "provider": "groq",
+    "agent_model": "openai/gpt-oss-120b",
+    "judge_model": "qwen/qwen3.8-27b"
+  },
+  "summary": {
+    "cases": 12,
+    "errors": 1,
+    "completion_rate": 1.0,
+    "category_accuracy": 0.8182,
+    "action_accuracy": 0.9091,
+    "tool_recall": 0.9545,
+    "root_cause_score": 0.8636,
+    "avg_tool_calls": 2.5455,
+    "avg_seconds": 21.6091,
+    "forced_submit_rate": 0.8182
+  },
+  "results": [
+    {
+      "id": "auth-secret-expired",
+      "run_id": "run-1019-ingest-customers",
+      "completed": true,
+      "category": "authentication",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "check_linked_service",
+        "search_knowledge"
+      ],
+      "tool_calls": 3,
+      "forced_submit": false,
+      "seconds": 4.3,
+      "root_cause": "Expired Service Principal secret for ls_adls_crm caused Unauthorized ADLS Gen2 access.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the expired service principal secret for the specific linked service as the root cause, matching the reference.",
+      "error": null
+    },
+    {
+      "id": "permission-role-removed",
+      "run_id": "run-1019-load-gold-finance",
+      "completed": false,
+      "category": null,
+      "category_correct": false,
+      "action": null,
+      "action_correct": false,
+      "tool_recall": 0.0,
+      "tools_called": [],
+      "tool_calls": 0,
+      "forced_submit": false,
+      "seconds": null,
+      "root_cause": null,
+      "root_cause_score": null,
+      "judge_reason": null,
+      "error": "RateLimitError: Error code: 429 - {'error': {'message': \"Request too large for model `qwen/qwen3.8-27b` in organization `org_01m59t9yw9es495cew2mf62j3k` service tier `on_demand` on output tokens per minute (OTPM): Limit 1000, Requested 1100. The request's expected output tokens exceed the enforced limit; reduce max_tokens (or the request's expected output) and try again. Need more tokens? Upgrade "
+    },
+    {
+      "id": "schema-drift-new-column",
+      "run_id": "run-1019-ingest-stores",
+      "completed": true,
+      "category": "schema_drift",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "compare_source_schema",
+        "search_knowledge"
+      ],
+      "tool_calls": 3,
+      "forced_submit": true,
+      "seconds": 53.0,
+      "root_cause": "A source schema change added the column 'region_code' to the stores CSV file, but the ADF dataset still defined only eight columns, leading to a column\u2011count mismatch error.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the addition of the 'region_code' column as the cause of the schema mismatch, matching the reference root cause.",
+      "error": null
+    },
+    {
+      "id": "timeout-data-growth",
+      "run_id": "run-1018-transform-gold-sales",
+      "completed": true,
+      "category": "timeout",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "get_job_metrics"
+      ],
+      "tool_calls": 2,
+      "forced_submit": true,
+      "seconds": 25.1,
+      "root_cause": "The notebook processing the gold sales fact exceeded the configured 1\u2011hour timeout due to increased data volume.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the increased data volume and the resulting timeout as the root cause, matching the reference.",
+      "error": null
+    },
+    {
+      "id": "oom-data-skew",
+      "run_id": "run-1019-transform-silver-sales",
+      "completed": true,
+      "category": "out_of_memory",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "get_job_metrics"
+      ],
+      "tool_calls": 2,
+      "forced_submit": true,
+      "seconds": 35.0,
+      "root_cause": "A heavily skewed join on store_id caused one executor to exceed its heap memory, triggering an OutOfMemoryError.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the core issue of data skew on store_id causing an OutOfMemoryError, which aligns with the reference root cause.",
+      "error": null
+    },
+    {
+      "id": "upstream-dependency",
+      "run_id": "run-1019-transform-gold-sales",
+      "completed": true,
+      "category": "out_of_memory",
+      "category_correct": false,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "get_pipeline_run",
+        "get_job_metrics"
+      ],
+      "tool_calls": 3,
+      "forced_submit": true,
+      "seconds": 25.8,
+      "root_cause": "Data skew on store_id caused a join task to exceed executor memory, leading to an OutOfMemoryError.",
+      "root_cause_score": 0.5,
+      "judge_reason": "The agent correctly identifies the technical cause (data skew on store_id causing OOM) but fails to identify the specific upstream pipeline (pl_transform_silver_sales) and the dependency relationship that prevented the gold pipeline from running.",
+      "error": null
+    },
+    {
+      "id": "duplicate-file-resent",
+      "run_id": "run-1019-ingest-sales",
+      "completed": true,
+      "category": "duplicate_data",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "check_landing_zone",
+        "get_recent_runs"
+      ],
+      "tool_calls": 3,
+      "forced_submit": true,
+      "seconds": 45.3,
+      "root_cause": "A duplicate sales file was re\u2011sent by the source system, leading to existing transaction_id values being loaded again.",
+      "root_cause_score": 0.5,
+      "judge_reason": "The agent correctly identifies the duplicate file and transaction_id conflict but misses the critical detail that today's new sales file was not delivered, which is essential for a complete diagnosis.",
+      "error": null
+    },
+    {
+      "id": "late-source-file",
+      "run_id": "run-1019-ingest-inventory",
+      "completed": true,
+      "category": "source_file_missing",
+      "category_correct": true,
+      "action": "rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "check_landing_zone"
+      ],
+      "tool_calls": 2,
+      "forced_submit": true,
+      "seconds": 14.8,
+      "root_cause": "The source inventory file was not present in the landing zone when the pipeline started, leading to a FileNotFound error.",
+      "root_cause_score": 0.5,
+      "judge_reason": "The agent correctly identifies the immediate technical symptom (missing file) but misses the specific business context (month-end stock count) and the resolution path (rerun) provided in the reference.",
+      "error": null
+    },
+    {
+      "id": "null-rate-source-change",
+      "run_id": "run-1019-transform-silver-customers",
+      "completed": true,
+      "category": "schema_drift",
+      "category_correct": false,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "compare_source_schema",
+        "search_knowledge"
+      ],
+      "tool_calls": 3,
+      "forced_submit": true,
+      "seconds": 13.4,
+      "root_cause": "A source schema change made the 'email' column nullable, introducing null values that violated the mandatory\u2011column data\u2011quality rule.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the schema change making the email column nullable as the root cause for the data quality failure, which aligns with the reference cause.",
+      "error": null
+    },
+    {
+      "id": "snowflake-quota",
+      "run_id": "run-1019-load-snowflake-reporting",
+      "completed": true,
+      "category": "resource_quota",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": false,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "check_linked_service"
+      ],
+      "tool_calls": 2,
+      "forced_submit": true,
+      "seconds": 3.7,
+      "root_cause": "Snowflake resource monitor RM_MONTHLY_REPORTING hit its 100% credit quota, causing warehouse WH_REPORTING to stay suspended and reject the write operation.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the specific resource monitor, the quota exhaustion, and the resulting warehouse suspension, matching the reference root cause.",
+      "error": null
+    },
+    {
+      "id": "transient-network",
+      "run_id": "run-1019-ingest-products",
+      "completed": true,
+      "category": "transient_network",
+      "category_correct": true,
+      "action": "rerun",
+      "action_correct": true,
+      "tool_recall": 0.5,
+      "tools_called": [
+        "get_pipeline_run",
+        "check_linked_service"
+      ],
+      "tool_calls": 2,
+      "forced_submit": false,
+      "seconds": 1.2,
+      "root_cause": "A transient network issue (TCP reset on ExpressRoute) caused the SQL connection handshake to fail.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the transient TCP reset on ExpressRoute as the root cause, matching the reference.",
+      "error": null
+    },
+    {
+      "id": "shir-offline",
+      "run_id": "run-1019-ingest-onprem-branches",
+      "completed": true,
+      "category": "integration_runtime",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_pipeline_run",
+        "check_linked_service",
+        "search_knowledge"
+      ],
+      "tool_calls": 3,
+      "forced_submit": true,
+      "seconds": 16.1,
+      "root_cause": "The SHIR node vm-shir-01 rebooted for patching and the DIAHostService service remained stopped because its startup type was Manual, leaving the integration runtime offline.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the VM reboot for patching and the DIAHostService manual startup type as the cause of the offline status, matching the reference root cause.",
+      "error": null
+    }
+  ]
+}
