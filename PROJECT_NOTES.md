@@ -18,7 +18,7 @@ I worked on ADF pipelines and Databricks transformations as a data engineer, so 
 The number of steps isn't fixed: the agent decides what to check next from what it found. LangGraph gives me a loop with conditional edges, a step budget, state and an interrupt for human approval.
 
 **Why build the graph yourself instead of a prebuilt ReAct agent?**
-I needed a step budget, a forced final answer, structured output and an approval node. As explicit nodes, each one is visible and testable.
+I needed a step budget, a separate report step for structured output, and an approval node. As explicit nodes, each one is visible and testable.
 
 **How does the agent stop?**
 When it stops calling tools, or after a 6-round budget. A separate report step then turns the investigation transcript into a validated JSON report.
