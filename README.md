@@ -57,19 +57,19 @@ The agent is evaluated on all 12 incidents (`eval/cases.json`). Each case has th
 <!-- EVAL_RESULTS_START -->
 **Latest results**
 
-- Run: 2026-10-19 11:37 UTC · 3 incidents · errors: 0  
-- Agent: `openai/gpt-oss-20b` via groq · judge: `qwen/qwen3.8-27b`
+- Run: 2026-10-19 11:28 UTC · 12 incidents · errors: 3  
+- Agent: `openai/gpt-oss-120b` via groq · judge: `qwen/qwen3.8-27b`
 
 | Metric | Score |
 |---|---|
 | Diagnosis completed | 100.0% |
-| Category accuracy | 100.0% |
-| Recommended action correct | 33.3% |
-| Evidence tool recall | 100.0% |
-| Root-cause score (LLM judge) | 100.0% |
-| Avg tool calls per incident | 2.6667 |
-| Avg seconds per incident | 23.3 |
-| Stopped by the 6-round step budget | 0.0% |
+| Category accuracy | 88.9% |
+| Recommended action correct | 100.0% |
+| Evidence tool recall | 94.4% |
+| Root-cause score (LLM judge) | 88.9% |
+| Avg tool calls per incident | 3.2222 |
+| Avg seconds per incident | 35.6111 |
+| Forced to submit (budget or no tool call) | 100.0% |
 
 Per-incident results: `eval/results/latest.md`.
 <!-- EVAL_RESULTS_END -->
