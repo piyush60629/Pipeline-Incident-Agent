@@ -40,8 +40,9 @@ def make_chat_model(
             options["reasoning_effort"] = "low"  # reasoning is returned separately; keep it short
             max_tokens += REASONING_TOKEN_HEADROOM
         elif model.startswith("qwen/"):
-            options["reasoning_format"] = "hidden"  # final answer only, no <think> text
-            max_tokens += REASONING_TOKEN_HEADROOM
+            # Qwen 3.8 on Groq returns no reasoning tokens at reasoning_effort "default", so no headroom
+            # is needed (its free tier also caps output at 1,000 tokens per minute).
+            options["reasoning_format"] = "hidden"
         return ChatGroq(
             model=model,
             api_key=key,

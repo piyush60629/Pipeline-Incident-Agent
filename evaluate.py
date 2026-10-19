@@ -213,8 +213,11 @@ def run(args: argparse.Namespace, agent=None, judge=None, sleep=time.sleep, log=
             outcome = agent.diagnose(run_id=case["run_id"])
             row = score_case(case, outcome)
             if judge is not None and row["root_cause"]:
-                verdict = judge_root_cause(judge, case, row["root_cause"])
-                row["root_cause_score"], row["judge_reason"] = verdict["score"], verdict["reason"]
+                try:
+                    verdict = judge_root_cause(judge, case, row["root_cause"])
+                    row["root_cause_score"], row["judge_reason"] = verdict["score"], verdict["reason"]
+                except Exception as exc:  # noqa: BLE001 - a judge failure must not discard the agent's result
+                    row["judge_reason"] = f"Judge failed: {type(exc).__name__}: {str(exc)[:150]}"
             consecutive_errors = 0
         except Exception as exc:  # noqa: BLE001 - provider errors
             row = {**score_case(case, {}), "error": f"{type(exc).__name__}: {exc}"[:400]}

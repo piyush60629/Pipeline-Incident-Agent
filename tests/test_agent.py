@@ -110,3 +110,10 @@ def test_free_text_errors_are_supported():
     )
     assert result["report"]["recommended_action"] == "rerun"
     assert result["pending_approval"] is None  # no run id, so nothing to rerun
+
+
+def test_qwen_judge_requests_fit_the_free_tier_output_limit():
+    from incident_agent.llm import make_chat_model
+
+    judge = make_chat_model("groq", "qwen/qwen3.8-27b", api_key="k", max_tokens=300)
+    assert judge.max_tokens == 300 and judge.reasoning_format == "hidden"

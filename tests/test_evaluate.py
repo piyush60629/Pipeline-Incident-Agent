@@ -99,3 +99,15 @@ def test_repeated_errors_stop_the_run():
     args = argparse.Namespace(cases=None, delay=0)
     rows, summary, stopped = evaluate.run(args, agent=Broken(), judge=None, log=lambda _: None)
     assert stopped and len(rows) == evaluate.MAX_CONSECUTIVE_ERRORS and summary["errors"] == 3
+
+
+def test_judge_failure_keeps_the_agent_result():
+    class BrokenJudge:
+        def invoke(self, messages):
+            raise RuntimeError("Error code: 429 - Request too large")
+
+    ids = [c["id"] for c in evaluate.load_cases(["late-source-file"])]
+    rows, summary, stopped = evaluate.run(argparse.Namespace(cases=ids, delay=0), agent=_agent_for(ids), judge=BrokenJudge(), log=lambda _: None)
+    assert not stopped and summary["errors"] == 0
+    assert rows[0]["category_correct"] and rows[0]["root_cause_score"] is None
+    assert rows[0]["judge_reason"].startswith("Judge failed")

@@ -31,16 +31,23 @@ ACTIONS: tuple[str, ...] = get_args(Action)
 class DiagnosisReport(BaseModel):
     """Final diagnosis of a failed pipeline run."""
 
-    category: Category = Field(description="Failure category. Use 'unknown' only if the evidence is insufficient.")
+    category: Category = Field(
+        description="Failure category of THIS run. Rules: a run that failed because an upstream pipeline failed is "
+        "'upstream_dependency' (even if the upstream failure was out of memory); a failed data quality check is "
+        "'data_quality' (even if a source change caused it); 'schema_drift' is only for added, removed or renamed "
+        "columns that break the load; 'permission' = authenticated but not allowed (403); 'authentication' = "
+        "credentials rejected or expired; 'unknown' only if the evidence is insufficient."
+    )
     root_cause: str = Field(description="One or two sentences: what actually caused the failure, based on tool evidence.")
     confidence: Confidence = Field(description="high = confirmed by tool evidence; medium = likely; low = guess.")
     evidence: list[str] = Field(description="2-5 short facts from tool results that support the root cause.")
     fix_steps: list[str] = Field(description="Ordered steps to resolve the failure, following the runbook where one applies.")
     prevention: list[str] = Field(default_factory=list, description="1-3 steps that stop this happening again.")
     recommended_action: Action = Field(
-        description="'rerun' = safe to rerun now with no change (transient or already resolved); "
-        "'fix_then_rerun' = something must be fixed first; 'escalate' = another team must act "
-        "(access, quotas, source data owners); 'no_action' = nothing to do."
+        description="'rerun' = safe to rerun now with no change (transient error, or the cause is already resolved); "
+        "'fix_then_rerun' = the data team can fix it, then rerun; 'escalate' = only another team can fix or approve "
+        "it (IAM role assignments, Snowflake quotas / resource monitors, source data owners deciding a rule); "
+        "'no_action' = nothing to do."
     )
     sources: list[str] = Field(default_factory=list, description="Runbook / incident citations used.")
     incident_summary: str = Field(description="Three to four sentences for the incident ticket: impact, cause, next step.")
