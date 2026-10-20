@@ -1,7 +1,7 @@
 {
   "config": {
-    "timestamp": "2026-10-20 02:21 UTC",
-    "label": "lakehouse-v1",
+    "timestamp": "2026-10-20 02:27 UTC",
+    "label": "lakehouse-v2-auto-runbook",
     "provider": "groq",
     "agent_model": "openai/gpt-oss-120b",
     "judge_model": "qwen/qwen3.8-27b",
@@ -15,9 +15,10 @@
     "action_accuracy": 1.0,
     "tool_recall": 1.0,
     "root_cause_score": 1.0,
-    "avg_tool_calls": 2.8,
-    "avg_seconds": 35.44,
-    "budget_reached_rate": 0.0
+    "avg_tool_calls": 3.4,
+    "avg_seconds": 23.3,
+    "budget_reached_rate": 0.0,
+    "auto_knowledge_rate": 1.0
   },
   "results": [
     {
@@ -32,14 +33,16 @@
       "tool_recall": 1.0,
       "tools_called": [
         "get_lakehouse_run",
-        "check_source_files"
+        "check_source_files",
+        "search_knowledge"
       ],
-      "tool_calls": 2,
+      "tool_calls": 3,
       "budget_reached": false,
-      "seconds": 3.7,
-      "root_cause": "The products CSV for batch 2026\u201107\u201122 contains an extra column `currency` that is not defined in the Bronze schema, causing Spark to treat each line as a malformed CSV record and abort the Bronze ingestion.",
+      "auto_knowledge": true,
+      "seconds": 5.2,
+      "root_cause": "The products CSV for batch 2026\u201107\u201122 contains an extra `currency` column that is not defined in the Bronze schema, causing Spark to treat each line as a malformed CSV record and abort the Bronze ingestion.",
       "root_cause_score": 1.0,
-      "judge_reason": "The agent correctly identifies the extra 'currency' column in the products CSV as the cause of the schema mismatch and resulting MALFORMED_CSV_RECORD error.",
+      "judge_reason": "The agent correctly identifies the extra 'currency' column as the cause of the schema mismatch and resulting MALFORMED_CSV_RECORD error.",
       "error": null
     },
     {
@@ -54,14 +57,16 @@
       "tool_recall": 1.0,
       "tools_called": [
         "get_lakehouse_run",
-        "check_source_files"
+        "check_source_files",
+        "search_knowledge"
       ],
-      "tool_calls": 2,
+      "tool_calls": 3,
       "budget_reached": false,
-      "seconds": 29.9,
-      "root_cause": "The Bronze ingestion failed because the `products` source file contains non\u2011numeric values (e.g., \"N/A\") in the `price` column, causing a NumberFormatException when Spark attempted to cast to double.",
+      "auto_knowledge": true,
+      "seconds": 24.7,
+      "root_cause": "The Bronze ingestion failed because the `price` column in the `products` source CSV contains non\u2011numeric placeholder values (`\"N/A\"`), causing a java.lang.NumberFormatException when Spark attempted to cast the column to double.",
       "root_cause_score": 1.0,
-      "judge_reason": "The agent correctly identifies the specific data issue ('N/A' in price column) and the resulting error (NumberFormatException during cast to double) in the Bronze load, matching the reference root cause.",
+      "judge_reason": "The agent correctly identifies the specific data issue ('N/A' in price column) and the resulting error (NumberFormatException) that caused the Bronze load failure, matching the reference root cause.",
       "error": null
     },
     {
@@ -76,14 +81,16 @@
       "tool_recall": 1.0,
       "tools_called": [
         "get_lakehouse_run",
-        "check_source_files"
+        "check_source_files",
+        "search_knowledge"
       ],
-      "tool_calls": 2,
+      "tool_calls": 3,
       "budget_reached": false,
-      "seconds": 23.2,
-      "root_cause": "The orders source CSV for batch 2026\u201107\u201122 contained 800 duplicate order_id primary\u2011key values, causing a ValueError in the Bronze ingestion stage.",
+      "auto_knowledge": true,
+      "seconds": 16.5,
+      "root_cause": "The source file raw/orders/orders.csv for batch 2026\u201107\u201122 contains 800 duplicate order_id values, causing a ValueError in the Bronze ingestion stage.",
       "root_cause_score": 1.0,
-      "judge_reason": "The agent correctly identifies the 800 duplicate order_id rows as the root cause of the ingestion failure, matching the reference.",
+      "judge_reason": "The agent correctly identifies the 800 duplicate order_ids in the orders file as the root cause of the ingestion failure, matching the reference.",
       "error": null
     },
     {
@@ -98,11 +105,13 @@
       "tool_recall": 1.0,
       "tools_called": [
         "get_lakehouse_run",
-        "check_source_files"
+        "check_source_files",
+        "search_knowledge"
       ],
-      "tool_calls": 2,
+      "tool_calls": 3,
       "budget_reached": false,
-      "seconds": 23.9,
+      "auto_knowledge": true,
+      "seconds": 27.5,
       "root_cause": "The payments CSV for batch 2026\u201107\u201122 contains a malformed record (row 20487) with only 4 columns instead of the required 6 and the file does not end with a newline, causing Spark to raise a MALFORMED_CSV_RECORD error during Bronze ingestion.",
       "root_cause_score": 1.0,
       "judge_reason": "The agent correctly identifies the malformed record, the missing newline, and the resulting parse error, which aligns with the reference cause of a truncated file.",
@@ -115,7 +124,7 @@
       "completed": true,
       "category": "upstream_dependency",
       "category_correct": true,
-      "action": "fix_then_rerun",
+      "action": "rerun",
       "action_correct": true,
       "tool_recall": 1.0,
       "tools_called": [
@@ -123,15 +132,15 @@
         "get_layer_outputs",
         "get_stage_log",
         "get_recent_lakehouse_runs",
-        "get_recent_lakehouse_runs",
-        "check_source_files"
+        "search_knowledge"
       ],
-      "tool_calls": 6,
+      "tool_calls": 5,
       "budget_reached": false,
-      "seconds": 96.5,
-      "root_cause": "The pipeline was started from the Gold layer (start_from=\"src.gold\"), skipping the SCD2 dimension build. Consequently the required SCD2 file data/silver_dimensions/batch_date=2026-07-22/customers was missing, causing a FileNotFoundError in the Gold stage.",
+      "auto_knowledge": true,
+      "seconds": 42.6,
+      "root_cause": "The pipeline was started from `src.gold`, skipping earlier stages that create the SCD2 dimension. Because the `silver_dimensions` output for the batch date does not exist, the Gold stage raised a FileNotFoundError.",
       "root_cause_score": 1.0,
-      "judge_reason": "The agent correctly identifies that starting from src.gold skipped the SCD2 dimension build, leading to the missing file and FileNotFoundError, which matches the reference root cause.",
+      "judge_reason": "The agent correctly identifies that starting from src.gold skipped the necessary earlier stages, resulting in a missing SCD2 dimension file and a FileNotFoundError, which matches the reference root cause.",
       "error": null
     }
   ]
