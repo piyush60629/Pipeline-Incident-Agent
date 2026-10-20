@@ -100,9 +100,9 @@ def main() -> int:
     parser.add_argument("--run-text", default="Gold layer", help="Text of the failed run to pick in the list")
     parser.add_argument("--out", type=Path, default=Path("docs/demo.gif"))
     parser.add_argument("--video-out", type=Path, help="Also keep the raw .webm video here")
-    parser.add_argument("--speed", type=float, default=1.6, help="Playback speed of the GIF")
-    parser.add_argument("--width", type=int, default=960)
-    parser.add_argument("--fps", type=int, default=8)
+    parser.add_argument("--speed", type=float, default=2.0, help="Playback speed of the GIF")
+    parser.add_argument("--width", type=int, default=880)
+    parser.add_argument("--fps", type=int, default=7)
     parser.add_argument("--timeout", type=int, default=240, help="Seconds to wait for the diagnosis")
     args = parser.parse_args()
 
