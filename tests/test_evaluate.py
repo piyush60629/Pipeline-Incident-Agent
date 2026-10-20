@@ -14,7 +14,7 @@ from incident_agent.tools import TOOL_NAMES
 
 
 def test_cases_match_the_data():
-    cases = evaluate.load_cases()
+    cases = evaluate.load_cases(environment="azure")
     assert len(cases) == 12
     open_failures = {r["run_id"] for r in data_store.failed_runs()} | {"run-1018-transform-gold-sales"}
     for case in cases:
@@ -93,7 +93,7 @@ def test_wrong_answers_are_scored_as_wrong():
 
 def test_repeated_errors_stop_the_run():
     class Broken:
-        def diagnose(self, run_id):
+        def diagnose(self, run_id, environment=None):
             raise RuntimeError("Error code: 401 - Invalid API Key")
 
     args = argparse.Namespace(cases=None, delay=0)
@@ -111,3 +111,35 @@ def test_judge_failure_keeps_the_agent_result():
     assert not stopped and summary["errors"] == 0
     assert rows[0]["category_correct"] and rows[0]["root_cause_score"] is None
     assert rows[0]["judge_reason"].startswith("Judge failed")
+
+
+def test_history_with_old_columns_is_migrated(tmp_path):
+    history = tmp_path / "history.csv"
+    history.write_text("timestamp,label,cases,forced_submit_rate\nold,baseline,12,0.5\n", encoding="utf-8")
+    evaluate.append_history(history, {"timestamp": "new", "label": "v3", "scope": "all", "cases": 17, "budget_reached_rate": 0.1})
+    rows = list(csv.DictReader(history.open()))
+    assert list(rows[0]) == evaluate.HISTORY_FIELDS
+    assert rows[0]["budget_reached_rate"] == "0.5" and rows[1]["scope"] == "all" and rows[1]["cases"] == "17"
+
+
+def test_markdown_breaks_results_down_by_platform():
+    rows = [
+        {**evaluate.score_case({"id": "a", "run_id": "r", "environment": "azure", "expected_tools": [],
+                                "expected_category": "timeout", "acceptable_actions": ["rerun"]},
+                               {"report": {"category": "timeout", "recommended_action": "rerun"}})},
+        {**evaluate.score_case({"id": "b", "run_id": "r2", "environment": "lakehouse", "expected_tools": [],
+                                "expected_category": "data_quality", "acceptable_actions": ["fix_then_rerun"]},
+                               {"report": {"category": "schema_drift", "recommended_action": "fix_then_rerun"}})},
+    ]
+    config = {"timestamp": "t", "provider": "groq", "agent_model": "m", "judge_model": "j"}
+    markdown = evaluate.render_markdown(evaluate.aggregate(rows), rows, config)
+    assert "| azure | 1 | 100.0% |" in markdown and "| lakehouse | 1 | 0.0% | 100.0% |" in markdown
+
+
+def test_cases_can_be_filtered_by_environment():
+    every = evaluate.load_cases()
+    if not any(c["environment"] == "lakehouse" for c in every):
+        pytest.skip("lakehouse cases not added yet")
+    assert {c["environment"] for c in every} == {"azure", "lakehouse"}
+    assert len(evaluate.load_cases(environment="all")) == len(every)
+    assert all(c["environment"] == "lakehouse" for c in evaluate.load_cases(environment="lakehouse"))

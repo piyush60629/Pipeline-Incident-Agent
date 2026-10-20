@@ -1,0 +1,147 @@
+{
+  "config": {
+    "timestamp": "2026-10-20 02:27 UTC",
+    "label": "lakehouse-v2-auto-runbook",
+    "provider": "groq",
+    "agent_model": "openai/gpt-oss-120b",
+    "judge_model": "qwen/qwen3.8-27b",
+    "scope": "lakehouse"
+  },
+  "summary": {
+    "cases": 5,
+    "errors": 0,
+    "completion_rate": 1.0,
+    "category_accuracy": 1.0,
+    "action_accuracy": 1.0,
+    "tool_recall": 1.0,
+    "root_cause_score": 1.0,
+    "avg_tool_calls": 3.4,
+    "avg_seconds": 23.3,
+    "budget_reached_rate": 0.0,
+    "auto_knowledge_rate": 1.0
+  },
+  "results": [
+    {
+      "id": "lakehouse-new-column",
+      "environment": "lakehouse",
+      "run_id": "run-2026-07-22-155748",
+      "completed": true,
+      "category": "schema_drift",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_lakehouse_run",
+        "check_source_files",
+        "search_knowledge"
+      ],
+      "tool_calls": 3,
+      "budget_reached": false,
+      "auto_knowledge": true,
+      "seconds": 5.2,
+      "root_cause": "The products CSV for batch 2026\u201107\u201122 contains an extra `currency` column that is not defined in the Bronze schema, causing Spark to treat each line as a malformed CSV record and abort the Bronze ingestion.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the extra 'currency' column as the cause of the schema mismatch and resulting MALFORMED_CSV_RECORD error.",
+      "error": null
+    },
+    {
+      "id": "lakehouse-text-in-price",
+      "environment": "lakehouse",
+      "run_id": "run-2026-07-22-155810",
+      "completed": true,
+      "category": "data_quality",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_lakehouse_run",
+        "check_source_files",
+        "search_knowledge"
+      ],
+      "tool_calls": 3,
+      "budget_reached": false,
+      "auto_knowledge": true,
+      "seconds": 24.7,
+      "root_cause": "The Bronze ingestion failed because the `price` column in the `products` source CSV contains non\u2011numeric placeholder values (`\"N/A\"`), causing a java.lang.NumberFormatException when Spark attempted to cast the column to double.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the specific data issue ('N/A' in price column) and the resulting error (NumberFormatException) that caused the Bronze load failure, matching the reference root cause.",
+      "error": null
+    },
+    {
+      "id": "lakehouse-duplicate-orders",
+      "environment": "lakehouse",
+      "run_id": "run-2026-07-22-155830",
+      "completed": true,
+      "category": "duplicate_data",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_lakehouse_run",
+        "check_source_files",
+        "search_knowledge"
+      ],
+      "tool_calls": 3,
+      "budget_reached": false,
+      "auto_knowledge": true,
+      "seconds": 16.5,
+      "root_cause": "The source file raw/orders/orders.csv for batch 2026\u201107\u201122 contains 800 duplicate order_id values, causing a ValueError in the Bronze ingestion stage.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the 800 duplicate order_ids in the orders file as the root cause of the ingestion failure, matching the reference.",
+      "error": null
+    },
+    {
+      "id": "lakehouse-truncated-payments",
+      "environment": "lakehouse",
+      "run_id": "run-2026-07-22-155853",
+      "completed": true,
+      "category": "corrupt_source_file",
+      "category_correct": true,
+      "action": "fix_then_rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_lakehouse_run",
+        "check_source_files",
+        "search_knowledge"
+      ],
+      "tool_calls": 3,
+      "budget_reached": false,
+      "auto_knowledge": true,
+      "seconds": 27.5,
+      "root_cause": "The payments CSV for batch 2026\u201107\u201122 contains a malformed record (row 20487) with only 4 columns instead of the required 6 and the file does not end with a newline, causing Spark to raise a MALFORMED_CSV_RECORD error during Bronze ingestion.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies the malformed record, the missing newline, and the resulting parse error, which aligns with the reference cause of a truncated file.",
+      "error": null
+    },
+    {
+      "id": "lakehouse-wrong-start-stage",
+      "environment": "lakehouse",
+      "run_id": "run-2026-07-22-155923",
+      "completed": true,
+      "category": "upstream_dependency",
+      "category_correct": true,
+      "action": "rerun",
+      "action_correct": true,
+      "tool_recall": 1.0,
+      "tools_called": [
+        "get_lakehouse_run",
+        "get_layer_outputs",
+        "get_stage_log",
+        "get_recent_lakehouse_runs",
+        "search_knowledge"
+      ],
+      "tool_calls": 5,
+      "budget_reached": false,
+      "auto_knowledge": true,
+      "seconds": 42.6,
+      "root_cause": "The pipeline was started from `src.gold`, skipping earlier stages that create the SCD2 dimension. Because the `silver_dimensions` output for the batch date does not exist, the Gold stage raised a FileNotFoundError.",
+      "root_cause_score": 1.0,
+      "judge_reason": "The agent correctly identifies that starting from src.gold skipped the necessary earlier stages, resulting in a missing SCD2 dimension file and a FileNotFoundError, which matches the reference root cause.",
+      "error": null
+    }
+  ]
+}

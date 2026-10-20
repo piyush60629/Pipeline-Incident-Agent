@@ -1,0 +1,31 @@
+{
+  "description": "Stages of run_pipeline.py in the Retail Analytics Lakehouse, in order, with the data layers each stage reads and writes (folders under data/, partitioned by batch_date). A stage can only run when the layers it reads exist for the batch date.",
+  "stages": [
+    {"order": 1, "name": "Incremental ingestion and Bronze validation", "module": "src.incremental",
+     "reads": ["raw CSV files (data/raw/<dataset>/<dataset>.csv) and data/control/file_manifest.json"],
+     "writes": ["validated", "bronze"],
+     "notes": "Detects new or changed files with the manifest, runs file and record validation, then loads Bronze with an explicit schema in FAILFAST mode. A malformed CSV row or a value of the wrong type stops the stage."},
+    {"order": 2, "name": "Record-level CDC", "module": "src.incremental.run_cdc",
+     "reads": ["bronze"], "writes": ["cdc"],
+     "notes": "Compares today's Bronze with the previous batch to find inserted, updated and deleted records."},
+    {"order": 3, "name": "Incremental Silver", "module": "src.incremental_silver",
+     "reads": ["cdc"], "writes": ["silver"],
+     "notes": "Applies CDC changes to the cleaned Silver tables."},
+    {"order": 4, "name": "SCD Type 2", "module": "src.scd2",
+     "reads": ["silver", "cdc"], "writes": ["silver_dimensions (SCD2)"],
+     "notes": "Maintains history for customers and products dimensions."},
+    {"order": 5, "name": "Fact enrichment", "module": "src.fact_enrichment",
+     "reads": ["silver", "silver_dimensions (SCD2)"], "writes": ["enriched_facts"],
+     "notes": "Joins order facts to the dimension versions valid at order time."},
+    {"order": 6, "name": "Gold layer", "module": "src.gold",
+     "reads": ["enriched_facts", "silver_dimensions (SCD2)"], "writes": ["gold"],
+     "notes": "Builds star-schema facts and dimensions."},
+    {"order": 7, "name": "Gold data quality", "module": "src.gold_quality",
+     "reads": ["gold", "enriched_facts"], "writes": [],
+     "notes": "Reconciliation and integrity checks; writes data/gold_quality_audit."},
+    {"order": 8, "name": "Analytics and KPI layer", "module": "src.analytics",
+     "reads": ["gold"], "writes": ["analytics"],
+     "notes": "Business KPIs and aggregates."}
+  ],
+  "rerun": "python run_pipeline.py --batch-date <date> [--start-from <module>]. --start-from skips every earlier stage, so it is only safe when those stages already wrote their output for the same batch date."
+}

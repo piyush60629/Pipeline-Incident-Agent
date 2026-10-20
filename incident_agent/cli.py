@@ -4,6 +4,8 @@
     python -m incident_agent.cli diagnose run-1019-ingest-inventory
     python -m incident_agent.cli diagnose --error "Java heap space in nb_silver_sales_join"
     python -m incident_agent.cli diagnose run-1019-ingest-inventory --approve
+    python -m incident_agent.cli --env lakehouse list
+    python -m incident_agent.cli --env lakehouse diagnose run-2026-07-22-153512
 """
 
 from __future__ import annotations
@@ -12,7 +14,8 @@ import argparse
 import json
 import sys
 
-from . import create_agent, data_store
+from . import create_agent, data_store, lakehouse_store
+from .environments import ENVIRONMENTS, run_label
 
 
 def _print_report(report: dict) -> None:
@@ -29,6 +32,7 @@ def _print_report(report: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--env", choices=list(ENVIRONMENTS), default="azure", help="Platform to investigate")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="List open pipeline failures")
     diagnose = sub.add_parser("diagnose", help="Diagnose a failed run")
@@ -41,14 +45,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "list":
-        for run in data_store.failed_runs():
-            print(f"{run['run_id']:38} {run['pipeline']:32} {run['error_code']}")
+        failures = lakehouse_store.failed_runs() if args.env == "lakehouse" else data_store.failed_runs()
+        for run in failures:
+            print(f"{run['run_id']:38} {run_label(args.env, run)}")
         return 0
 
     if not args.run_id and not args.error:
         parser.error("give a run id or --error")
 
-    agent = create_agent(provider=args.provider, model=args.model)
+    agent = create_agent(provider=args.provider, model=args.model, environment=args.env)
     thread_id, report, pending = None, None, None
     for event in agent.stream(run_id=args.run_id, error_text=args.error):
         if event["type"] == "start":

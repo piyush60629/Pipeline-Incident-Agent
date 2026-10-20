@@ -86,7 +86,7 @@ def test_hybrid_search_merges_vector_results():
 
     kb = KnowledgeBase(sections=sections, embedder=embedder)
     assert kb.mode.startswith("hybrid")
-    assert kb.search("words that match nothing in particular", k=1)[0][0].document == "integration_runtime.md"
+    assert kb.search("zzqx vvwq kkpl", k=1)[0][0].document == "integration_runtime.md"
 
 
 def test_tokenizer_keeps_error_codes():

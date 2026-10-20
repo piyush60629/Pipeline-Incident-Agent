@@ -1,0 +1,56 @@
+{
+  "batch_date": "2026-07-20",
+  "summary": [
+    {
+      "batch_date": "2026-07-20",
+      "dataset_name": "customers",
+      "failure_percentage": "0.0",
+      "invalid_records": "0",
+      "pass_percentage": "100.0",
+      "total_records": "5000",
+      "valid_records": "5000",
+      "validation_status": "SUCCESS"
+    },
+    {
+      "batch_date": "2026-07-20",
+      "dataset_name": "products",
+      "failure_percentage": "0.0",
+      "invalid_records": "0",
+      "pass_percentage": "100.0",
+      "total_records": "1000",
+      "valid_records": "1000",
+      "validation_status": "SUCCESS"
+    },
+    {
+      "batch_date": "2026-07-20",
+      "dataset_name": "orders",
+      "failure_percentage": "0.0",
+      "invalid_records": "0",
+      "pass_percentage": "100.0",
+      "total_records": "50000",
+      "valid_records": "50000",
+      "validation_status": "SUCCESS"
+    },
+    {
+      "batch_date": "2026-07-20",
+      "dataset_name": "order_items",
+      "failure_percentage": "0.0",
+      "invalid_records": "0",
+      "pass_percentage": "100.0",
+      "total_records": "150219",
+      "valid_records": "150219",
+      "validation_status": "SUCCESS"
+    },
+    {
+      "batch_date": "2026-07-20",
+      "dataset_name": "payments",
+      "failure_percentage": "0.0",
+      "invalid_records": "0",
+      "pass_percentage": "100.0",
+      "total_records": "50000",
+      "valid_records": "50000",
+      "validation_status": "SUCCESS"
+    }
+  ],
+  "rule_failures": []
+}

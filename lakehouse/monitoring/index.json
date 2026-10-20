@@ -1,0 +1,81 @@
+{
+  "runs": [
+    {
+      "run_id": "run-2026-07-20-154930",
+      "batch_date": "2026-07-20",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:49:30+00:00",
+      "duration_seconds": 152.6,
+      "start_from": "src.fact_enrichment",
+      "failed_stage": null,
+      "error_type": null,
+      "root_error": null
+    },
+    {
+      "run_id": "run-2026-07-21-155205",
+      "batch_date": "2026-07-21",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:52:05+00:00",
+      "duration_seconds": 340.6,
+      "start_from": null,
+      "failed_stage": null,
+      "error_type": null,
+      "root_error": null
+    },
+    {
+      "run_id": "run-2026-07-22-155748",
+      "batch_date": "2026-07-22",
+      "status": "FAILED",
+      "started_at": "2026-10-19T15:57:48+00:00",
+      "duration_seconds": 18.4,
+      "start_from": null,
+      "failed_stage": "Incremental ingestion and Bronze validation",
+      "error_type": "src.incremental.bronze_adapter.PipelineExecutionError",
+      "root_error": "org.apache.spark.SparkRuntimeException: [MALFORMED_CSV_RECORD] Malformed CSV record: PROD00001,LG Electronics Item 1,Electronics,LG,INR,6723.33,287 SQLSTATE: KD000"
+    },
+    {
+      "run_id": "run-2026-07-22-155810",
+      "batch_date": "2026-07-22",
+      "status": "FAILED",
+      "started_at": "2026-10-19T15:58:10+00:00",
+      "duration_seconds": 17.7,
+      "start_from": null,
+      "failed_stage": "Incremental ingestion and Bronze validation",
+      "error_type": "src.incremental.bronze_adapter.PipelineExecutionError",
+      "root_error": "java.lang.NumberFormatException: For input string: \"N/A\""
+    },
+    {
+      "run_id": "run-2026-07-22-155830",
+      "batch_date": "2026-07-22",
+      "status": "FAILED",
+      "started_at": "2026-10-19T15:58:30+00:00",
+      "duration_seconds": 19.8,
+      "start_from": null,
+      "failed_stage": "Incremental ingestion and Bronze validation",
+      "error_type": "src.incremental.bronze_adapter.PipelineExecutionError",
+      "root_error": "ValueError: orders contains 800 duplicate primary keys."
+    },
+    {
+      "run_id": "run-2026-07-22-155853",
+      "batch_date": "2026-07-22",
+      "status": "FAILED",
+      "started_at": "2026-10-19T15:58:53+00:00",
+      "duration_seconds": 27.5,
+      "start_from": null,
+      "failed_stage": "Incremental ingestion and Bronze validation",
+      "error_type": "src.incremental.bronze_adapter.PipelineExecutionError",
+      "root_error": "org.apache.spark.SparkRuntimeException: [MALFORMED_CSV_RECORD] Malformed CSV record: PAY00020486,ORD00020486,Net Banking,Refun SQLSTATE: KD000"
+    },
+    {
+      "run_id": "run-2026-07-22-155923",
+      "batch_date": "2026-07-22",
+      "status": "FAILED",
+      "started_at": "2026-10-19T15:59:23+00:00",
+      "duration_seconds": 8.8,
+      "start_from": "src.gold",
+      "failed_stage": "Gold layer",
+      "error_type": "FileNotFoundError",
+      "root_error": "FileNotFoundError: SCD2 dimension not found: data/silver_dimensions/batch_date=2026-07-22/customers"
+    }
+  ]
+}

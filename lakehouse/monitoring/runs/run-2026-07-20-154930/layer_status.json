@@ -1,0 +1,50 @@
+{
+  "batch_date": "2026-07-20",
+  "outputs_present": {
+    "validated": [
+      "customers",
+      "order_items",
+      "orders",
+      "payments",
+      "products"
+    ],
+    "bronze": [
+      "customers",
+      "order_items",
+      "orders",
+      "payments",
+      "products"
+    ],
+    "cdc": [],
+    "silver": [
+      "customers",
+      "order_items",
+      "orders",
+      "payments",
+      "products"
+    ],
+    "silver_dimensions (SCD2)": [
+      "customers",
+      "products"
+    ],
+    "enriched_facts": [
+      "order_items",
+      "orders",
+      "payments"
+    ],
+    "gold": [
+      "dim_customer",
+      "dim_date",
+      "dim_product",
+      "fact_payment",
+      "fact_sales"
+    ],
+    "analytics": [
+      "customer_performance",
+      "daily_sales_summary",
+      "executive_kpis",
+      "payment_summary",
+      "product_performance"
+    ]
+  }
+}

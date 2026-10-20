@@ -46,3 +46,17 @@ Run 1 showed category mix-ups where definitions overlapped, so I added explicit 
 
 **What would you change for production?**
 Real APIs behind the tools (ADF REST, Log Analytics, Databricks Jobs), a persistent checkpointer, alert-triggered runs, posting to Teams, and access control on approvals.
+
+## Lakehouse integration (real run logs)
+
+**How is this connected to your lakehouse project?**
+I added structured run logs to my PySpark lakehouse, then ran the real pipeline on five broken inputs. The agent diagnoses those real runs with lakehouse-specific tools and proposes the right `--start-from` stage for the rerun.
+
+**How do you know the agent isn't just told the answer?**
+The scenario runner writes which failure went into which run to a separate file that is never copied into the agent repo. The agent only sees the run log, source file checks and layer outputs.
+
+**What did you learn from the failure experiments?**
+Bronze wrapped every error in a generic `PipelineExecutionError`, so I log the first real `Caused by` as the root error. I also found a gap: if a file isn't re-delivered, the pipeline succeeds on yesterday's data.
+
+**How do you add another platform?**
+The graph is shared; each platform supplies its tools, system prompt and rerun action in `environments.py`.

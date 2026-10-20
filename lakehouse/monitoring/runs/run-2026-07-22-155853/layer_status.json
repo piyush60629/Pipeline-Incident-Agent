@@ -1,0 +1,19 @@
+{
+  "batch_date": "2026-07-22",
+  "outputs_present": {
+    "validated": [],
+    "bronze": [
+      "customers",
+      "order_items",
+      "orders",
+      "payments",
+      "products"
+    ],
+    "cdc": [],
+    "silver": [],
+    "silver_dimensions (SCD2)": [],
+    "enriched_facts": [],
+    "gold": [],
+    "analytics": []
+  }
+}

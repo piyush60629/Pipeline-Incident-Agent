@@ -1,0 +1,131 @@
+{
+  "run_id": "run-2026-07-22-155830",
+  "pipeline": "retail_analytics_lakehouse",
+  "batch_date": "2026-07-22",
+  "status": "FAILED",
+  "started_at": "2026-10-19T15:58:30+00:00",
+  "finished_at": "2026-10-19T15:58:50+00:00",
+  "duration_seconds": 19.8,
+  "start_from": null,
+  "triggered_by": "schedule",
+  "failed_stage": "Incremental ingestion and Bronze validation",
+  "error_type": "src.incremental.bronze_adapter.PipelineExecutionError",
+  "error_message": "Bronze ingestion failed with exit code 1.",
+  "root_error": "ValueError: orders contains 800 duplicate primary keys.",
+  "stages": [
+    {
+      "name": "Incremental ingestion and Bronze validation",
+      "module": "src.incremental",
+      "status": "FAILED",
+      "started_at": "2026-10-19T15:58:30+00:00",
+      "duration_seconds": 19.8,
+      "exit_code": 1,
+      "error_type": "src.incremental.bronze_adapter.PipelineExecutionError",
+      "error_message": "Bronze ingestion failed with exit code 1.",
+      "root_error": "ValueError: orders contains 800 duplicate primary keys.",
+      "key_error_lines": [
+        "ValueError: orders contains 800 duplicate primary keys.",
+        "PipelineExecutionError: Bronze ingestion failed with exit code 1.",
+        "src.incremental.bronze_adapter.PipelineExecutionError: Bronze ingestion failed with exit code 1."
+      ],
+      "log_tail": [
+        "  File \"<frozen runpy>\", line 88, in _run_code",
+        "  File \"src/ingestion/bronze_ingestion.py\", line 456, in <module>",
+        "    main()",
+        "  File \"src/ingestion/bronze_ingestion.py\", line 450, in main",
+        "    run_bronze_ingestion(",
+        "  File \"src/ingestion/bronze_ingestion.py\", line 365, in run_bronze_ingestion",
+        "    audit_record = ingest_dataset(",
+        "                   ^^^^^^^^^^^^^^^",
+        "  File \"src/ingestion/bronze_ingestion.py\", line 280, in ingest_dataset",
+        "    validate_primary_keys(",
+        "  File \"src/ingestion/bronze_ingestion.py\", line 205, in validate_primary_keys",
+        "    raise ValueError(",
+        "ValueError: orders contains 800 duplicate primary keys.",
+        "Incremental batch failed.",
+        "PipelineExecutionError: Bronze ingestion failed with exit code 1.",
+        "Traceback (most recent call last):",
+        "  File \"src/incremental/processor.py\", line 115, in process_pending_files",
+        "    run_validation_and_bronze(",
+        "  File \"src/incremental/bronze_adapter.py\", line 84, in run_validation_and_bronze",
+        "    run_command(",
+        "  File \"src/incremental/bronze_adapter.py\", line 64, in run_command",
+        "    raise PipelineExecutionError(",
+        "src.incremental.bronze_adapter.PipelineExecutionError: Bronze ingestion failed with exit code 1.",
+        "Traceback (most recent call last):",
+        "  File \"<frozen runpy>\", line 198, in _run_module_as_main",
+        "  File \"<frozen runpy>\", line 88, in _run_code",
+        "  File \"src/incremental/__main__.py\", line 65, in <module>",
+        "    main()",
+        "  File \"src/incremental/__main__.py\", line 56, in main",
+        "    run_incremental_pipeline(",
+        "  File \"src/incremental/runner.py\", line 134, in run_incremental_pipeline",
+        "    processed_count = process_pending_files(",
+        "                      ^^^^^^^^^^^^^^^^^^^^^^",
+        "  File \"src/incremental/processor.py\", line 115, in process_pending_files",
+        "    run_validation_and_bronze(",
+        "  File \"src/incremental/bronze_adapter.py\", line 84, in run_validation_and_bronze",
+        "    run_command(",
+        "  File \"src/incremental/bronze_adapter.py\", line 64, in run_command",
+        "    raise PipelineExecutionError(",
+        "src.incremental.bronze_adapter.PipelineExecutionError: Bronze ingestion failed with exit code 1."
+      ]
+    },
+    {
+      "name": "Record-level CDC",
+      "module": "src.incremental.run_cdc",
+      "status": "SKIPPED",
+      "started_at": null,
+      "duration_seconds": null,
+      "exit_code": null
+    },
+    {
+      "name": "Incremental Silver",
+      "module": "src.incremental_silver",
+      "status": "SKIPPED",
+      "started_at": null,
+      "duration_seconds": null,
+      "exit_code": null
+    },
+    {
+      "name": "SCD Type 2",
+      "module": "src.scd2",
+      "status": "SKIPPED",
+      "started_at": null,
+      "duration_seconds": null,
+      "exit_code": null
+    },
+    {
+      "name": "Fact enrichment",
+      "module": "src.fact_enrichment",
+      "status": "SKIPPED",
+      "started_at": null,
+      "duration_seconds": null,
+      "exit_code": null
+    },
+    {
+      "name": "Gold layer",
+      "module": "src.gold",
+      "status": "SKIPPED",
+      "started_at": null,
+      "duration_seconds": null,
+      "exit_code": null
+    },
+    {
+      "name": "Gold data quality",
+      "module": "src.gold_quality",
+      "status": "SKIPPED",
+      "started_at": null,
+      "duration_seconds": null,
+      "exit_code": null
+    },
+    {
+      "name": "Analytics and KPI layer",
+      "module": "src.analytics",
+      "status": "SKIPPED",
+      "started_at": null,
+      "duration_seconds": null,
+      "exit_code": null
+    }
+  ]
+}

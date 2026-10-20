@@ -77,7 +77,9 @@ def test_step_budget_stops_the_loop_and_still_produces_a_report():
     result = IncidentAgent(llm).diagnose(run_id="run-1019-ingest-products")
 
     assert result["budget_reached"] is True
-    assert sum(1 for e in result["trace"] if e["type"] == "tool_result") == MAX_TOOL_ROUNDS
+    results = [e for e in result["trace"] if e["type"] == "tool_result"]
+    assert len(results) == MAX_TOOL_ROUNDS + 1  # budget rounds + the automatic runbook search
+    assert results[-1]["tool"] == "search_knowledge" and result["auto_knowledge"] is True
     assert result["report"]["recommended_action"] == "escalate"
 
 
@@ -114,7 +116,7 @@ def test_provider_rejecting_a_malformed_tool_call_is_retried():
         report_json(**{**REPORT, "category": "schema_drift", "recommended_action": "fix_then_rerun"}),
     )
     result = IncidentAgent(llm).diagnose(run_id="run-1019-ingest-stores")
-    assert result["tools_called"] == ["get_pipeline_run"]
+    assert result["tools_called"] == ["get_pipeline_run", "search_knowledge"]  # runbooks searched automatically
     assert result["report"]["category"] == "schema_drift"
 
 
@@ -155,3 +157,23 @@ def test_qwen_judge_requests_fit_the_free_tier_output_limit():
 
     judge = make_chat_model("groq", "qwen/qwen3.8-27b", api_key="k", max_tokens=300)
     assert judge.max_tokens == 300 and judge.reasoning_format == "hidden"
+
+
+def test_runbooks_are_searched_automatically_only_when_the_agent_skipped_them():
+    skipped = scripted(
+        tool_round(call("get_pipeline_run", run_id="run-1019-ingest-inventory")),
+        final_text("UserErrorFileNotFound: the inventory file arrived late."),
+        report_json(**REPORT),
+    )
+    result = IncidentAgent(skipped).diagnose(run_id="run-1019-ingest-inventory")
+    auto = [e for e in result["trace"] if e["type"] == "tool_call" and e.get("auto")]
+    assert result["auto_knowledge"] is True and auto[0]["args"]["query"].startswith("UserErrorFileNotFound")
+    assert "RESULT search_knowledge" in skipped.seen[-1][1].content  # the report step sees the runbook text
+
+    searched = scripted(
+        tool_round(call("search_knowledge", query="file not found late")),
+        final_text(),
+        report_json(**REPORT),
+    )
+    result = IncidentAgent(searched).diagnose(run_id="run-1019-ingest-inventory")
+    assert result["auto_knowledge"] is False and result["tools_called"] == ["search_knowledge"]
