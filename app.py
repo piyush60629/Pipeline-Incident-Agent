@@ -106,7 +106,7 @@ def sidebar(settings: tuple[str, str] | None) -> None:
 
 def show_event(event: dict) -> None:
     if event["type"] == "tool_call":
-        label = TOOL_LABELS.get(event["tool"], event["tool"])
+        label = TOOL_LABELS.get(event["tool"], event["tool"]) + (" (automatic)" if event.get("auto") else "")
         st.markdown(f"**{label}** · `{event['tool']}({json.dumps(event['args'])})`")
     elif event["type"] == "tool_result":
         with st.expander(f"Result of {event['tool']}", expanded=False):

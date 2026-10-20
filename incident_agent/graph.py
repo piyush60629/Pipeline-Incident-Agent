@@ -13,6 +13,7 @@ Azure platform or the real Retail Analytics Lakehouse run logs.
 
 * investigate: the LLM with read-only tools decides what to check next (ReAct loop).
 * tools: LangGraph's ToolNode runs the requested tools (several in parallel per round).
+* knowledge: if the agent never searched the runbooks, one automatic search with its summary.
 * report: a separate LLM call turns the investigation transcript into a JSON DiagnosisReport,
   validated with Pydantic, with one retry if the JSON is invalid.
 * approval: pauses the graph with interrupt() until a person approves or rejects the rerun.
@@ -42,6 +43,7 @@ from langgraph.types import Command, interrupt
 from .config import MAX_TOOL_ROUNDS
 from .environments import DEFAULT_ENVIRONMENT, ENVIRONMENTS, get_environment
 from .schemas import coerce_report, extract_json_object, report_field_guide
+from .tools import search_knowledge
 
 SYSTEM_PROMPT = ENVIRONMENTS["azure"].system_prompt  # kept for backwards compatibility
 
@@ -62,6 +64,7 @@ class AgentState(TypedDict, total=False):
     run_id: str | None
     tool_rounds: int
     budget_reached: bool
+    auto_knowledge: bool
     report: dict | None
     report_attempts: int
     approval: dict | None
@@ -106,6 +109,16 @@ def transcript(messages: list[AnyMessage]) -> str:
         elif isinstance(message, ToolMessage):
             lines.append(f"RESULT {message.name}: {_text(message.content)}")
     return "\n".join(lines)
+
+
+def knowledge_query(messages: list[AnyMessage]) -> str:
+    """Search words for an automatic runbook lookup: the agent's summary, else the original request."""
+
+    for message in reversed(messages):
+        if isinstance(message, AIMessage) and _text(message.content).strip():
+            return _text(message.content).strip()[:400]
+    request = next((m for m in messages if isinstance(m, HumanMessage)), None)
+    return _text(request.content)[:400] if request else "pipeline failure"
 
 
 def _is_bad_tool_call(exc: Exception) -> bool:
@@ -183,6 +196,23 @@ def build_graph(llm: BaseChatModel, checkpointer: Any = None, environment: str =
     def mark_budget(state: AgentState) -> dict:
         return {"budget_reached": bool(_pending_tool_calls(state["messages"][-1]))}
 
+    def ensure_knowledge(state: AgentState) -> dict:
+        """If the agent never searched the runbooks, look them up once before the report, so the fix
+        steps follow the team's procedure. (In evaluation the model often skipped this step.)"""
+
+        searched = any(isinstance(m, ToolMessage) and m.name == "search_knowledge" for m in state["messages"])
+        if searched or search_knowledge not in env.tools:
+            return {"auto_knowledge": False}
+        query = knowledge_query(state["messages"])
+        call_id = f"auto_{uuid.uuid4().hex[:8]}"
+        call = {"name": "search_knowledge", "args": {"query": query}, "id": call_id, "type": "tool_call"}
+        result = search_knowledge.invoke({"query": query})
+        return {
+            "messages": [AIMessage(content="", tool_calls=[call]),
+                         ToolMessage(content=result, name="search_knowledge", tool_call_id=call_id)],
+            "auto_knowledge": True,
+        }
+
     def after_report(state: AgentState) -> str:
         report = state.get("report") or {}
         if report.get("recommended_action") == "rerun" and state.get("run_id"):
@@ -197,12 +227,14 @@ def build_graph(llm: BaseChatModel, checkpointer: Any = None, environment: str =
     graph.add_node("investigate", investigate)
     graph.add_node("tools", run_tools)
     graph.add_node("check_budget", mark_budget)
+    graph.add_node("knowledge", ensure_knowledge)
     graph.add_node("report", report)
     graph.add_node("approval", approval)
     graph.add_edge(START, "investigate")
     graph.add_conditional_edges("investigate", after_investigate, {"tools": "tools", "report": "check_budget"})
     graph.add_edge("tools", "investigate")
-    graph.add_edge("check_budget", "report")
+    graph.add_edge("check_budget", "knowledge")
+    graph.add_edge("knowledge", "report")
     graph.add_conditional_edges("report", after_report, ["approval", END])
     graph.add_edge("approval", END)
     return graph.compile(checkpointer=checkpointer or InMemorySaver())
@@ -246,7 +278,9 @@ class IncidentAgent:
                         for call in _pending_tool_calls(message):
                             if node == "investigate":
                                 yield {"type": "tool_call", "tool": call["name"], "args": call["args"]}
-                    elif isinstance(message, ToolMessage) and node == "tools":
+                            elif node == "knowledge":
+                                yield {"type": "tool_call", "tool": call["name"], "args": call["args"], "auto": True}
+                    elif isinstance(message, ToolMessage) and node in ("tools", "knowledge"):
                         yield {"type": "tool_result", "tool": message.name, "content": str(message.content)}
                 if node == "check_budget" and payload.get("budget_reached"):
                     yield {"type": "budget_reached"}
@@ -276,12 +310,13 @@ class IncidentAgent:
         """Run to completion (or to the approval pause) and return a summary of the run."""
 
         started = time.perf_counter()
-        trace, report, pending, thread_id, budget = [], None, None, None, False
+        trace, report, pending, thread_id, budget, auto = [], None, None, None, False, False
         for event in self.stream(run_id=run_id, error_text=error_text, environment=environment):
             if event["type"] == "start":
                 thread_id = event["thread_id"]
             elif event["type"] in ("tool_call", "tool_result"):
                 trace.append(event)
+                auto = auto or bool(event.get("auto"))
             elif event["type"] == "report":
                 report = event["report"]
             elif event["type"] == "approval_required":
@@ -295,5 +330,6 @@ class IncidentAgent:
             "tools_called": [e["tool"] for e in trace if e["type"] == "tool_call"],
             "trace": trace,
             "budget_reached": budget,
+            "auto_knowledge": auto,
             "seconds": round(time.perf_counter() - started, 1),
         }

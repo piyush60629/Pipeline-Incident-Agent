@@ -45,7 +45,7 @@ MAX_CONSECUTIVE_ERRORS = 3
 HISTORY_FIELDS = [
     "timestamp", "label", "scope", "provider", "agent_model", "judge_model", "cases", "errors", "completion_rate",
     "category_accuracy", "action_accuracy", "tool_recall", "root_cause_score", "avg_tool_calls", "avg_seconds",
-    "budget_reached_rate",
+    "budget_reached_rate", "auto_knowledge_rate",
 ]
 
 JUDGE_PROMPT = """You grade an incident-diagnosis agent. Compare the AGENT ROOT CAUSE with the REFERENCE ROOT CAUSE.
@@ -119,6 +119,7 @@ def score_case(case: dict, outcome: dict) -> dict:
         "tools_called": outcome.get("tools_called", []),
         "tool_calls": len(outcome.get("tools_called", [])),
         "budget_reached": bool(outcome.get("budget_reached")),
+        "auto_knowledge": bool(outcome.get("auto_knowledge")),
         "seconds": outcome.get("seconds"),
         "root_cause": report.get("root_cause"),
         "root_cause_score": None,
@@ -145,6 +146,7 @@ def aggregate(rows: list[dict]) -> dict:
         "avg_tool_calls": _mean([float(r["tool_calls"]) for r in ok]),
         "avg_seconds": _mean([float(r["seconds"] or 0) for r in ok]),
         "budget_reached_rate": _mean([1.0 if r["budget_reached"] else 0.0 for r in ok]),
+        "auto_knowledge_rate": _mean([1.0 if r.get("auto_knowledge") else 0.0 for r in ok]),
     }
 
 
@@ -176,6 +178,7 @@ def render_markdown(summary: dict, rows: list[dict], config: dict) -> str:
         f"| Avg tool calls per incident | {summary['avg_tool_calls'] if summary['avg_tool_calls'] is not None else 'n/a'} |",
         f"| Avg seconds per incident | {summary['avg_seconds'] if summary['avg_seconds'] is not None else 'n/a'} |",
         f"| Stopped by the {MAX_TOOL_ROUNDS}-round step budget | {_pct(summary['budget_reached_rate'])} |",
+        f"| Runbook search added automatically (agent skipped it) | {_pct(summary.get('auto_knowledge_rate'))} |",
         "",
     ]
     groups = by_environment(rows)

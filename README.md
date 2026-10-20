@@ -34,7 +34,8 @@ flowchart TD
     start([Failed run or error message]) --> investigate
     investigate["investigate<br/>LLM with the platform's read-only tools"] -->|tool calls| tools["tools<br/>ToolNode, runs calls in parallel"]
     tools --> investigate
-    investigate -->|"done, or 6 rounds used"| report["report<br/>transcript → JSON → Pydantic DiagnosisReport<br/>(one retry if invalid)"]
+    investigate -->|"done, or 6 rounds used"| knowledge["knowledge<br/>runbook search, only if the agent skipped it"]
+    knowledge --> report["report<br/>transcript → JSON → Pydantic DiagnosisReport<br/>(one retry if invalid)"]
     report -->|recommended action = rerun| approval{{"approval<br/>human-in-the-loop interrupt"}}
     report -->|fix first / escalate| done([Report])
     approval -->|approved| rerun["rerun<br/>simulated: ADF createRun or run_pipeline.py"] --> done
@@ -166,6 +167,7 @@ tests/            offline tests with a scripted chat model
 - **Explicit graph instead of a prebuilt agent:** the step budget, the report step and the approval step are visible nodes and edges that can be tested one by one.
 - **The model cannot change anything:** all tools are read-only. The only write action (rerun) sits behind an `interrupt()` that needs a human decision, which is how production agents should handle side effects.
 - **Investigate, then report (changed after evaluation):** the first version ended the loop with a `submit_diagnosis` tool whose arguments were the report schema. In evaluation, gpt-oss on Groq almost never called it on its own, and forcing the call caused 3 of 12 runs to fail with provider 400 errors (strict validation of a large tool schema). The agent now investigates freely and a separate step turns a plain-text transcript of the investigation into JSON, validated by Pydantic with lenient coercion and one retry. Malformed tool calls during the investigation are retried once with a nudge.
+- **Runbook search is guaranteed:** in the first lakehouse evaluation the model diagnosed all 5 failures correctly but never searched the runbooks, so its fix steps were its own. A `knowledge` node now runs one search with the agent's summary when the agent skipped it, and the evaluation reports how often that happens.
 - **Compact tool outputs:** every round resends the conversation, so tool results are trimmed JSON. This keeps a full investigation inside free-tier token limits.
 - **Hybrid search:** error codes like `AADSTS7000222` need exact keyword matching; paraphrased symptoms need embeddings. The knowledge base is small, so an in-memory index is enough.
 - **One agent, several platforms:** the graph is the same; each platform brings its own tools, instructions and rerun action (`environments.py`). Adding a platform means writing its tools, not a new agent.
