@@ -1,0 +1,49 @@
+{
+  "run_id": "run-2026-07-20-154930",
+  "pipeline": "retail_analytics_lakehouse",
+  "batch_date": "2026-07-20",
+  "status": "SUCCEEDED",
+  "started_at": "2026-10-19T15:49:30+00:00",
+  "finished_at": "2026-10-19T15:52:02+00:00",
+  "duration_seconds": 152.6,
+  "start_from": "src.fact_enrichment",
+  "triggered_by": "schedule",
+  "failed_stage": null,
+  "error_type": null,
+  "error_message": null,
+  "root_error": null,
+  "stages": [
+    {
+      "name": "Fact enrichment",
+      "module": "src.fact_enrichment",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:49:30+00:00",
+      "duration_seconds": 38.4,
+      "exit_code": 0
+    },
+    {
+      "name": "Gold layer",
+      "module": "src.gold",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:50:08+00:00",
+      "duration_seconds": 39.1,
+      "exit_code": 0
+    },
+    {
+      "name": "Gold data quality",
+      "module": "src.gold_quality",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:50:47+00:00",
+      "duration_seconds": 37.4,
+      "exit_code": 0
+    },
+    {
+      "name": "Analytics and KPI layer",
+      "module": "src.analytics",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:51:25+00:00",
+      "duration_seconds": 37.7,
+      "exit_code": 0
+    }
+  ]
+}

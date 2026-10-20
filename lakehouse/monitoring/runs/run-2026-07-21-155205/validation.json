@@ -1,0 +1,111 @@
+{
+  "batch_date": "2026-07-21",
+  "summary": [
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "customers",
+      "failure_percentage": "0.0",
+      "invalid_records": "0",
+      "pass_percentage": "100.0",
+      "total_records": "5080",
+      "valid_records": "5080",
+      "validation_status": "SUCCESS"
+    },
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "products",
+      "failure_percentage": "0.0",
+      "invalid_records": "0",
+      "pass_percentage": "100.0",
+      "total_records": "1000",
+      "valid_records": "1000",
+      "validation_status": "SUCCESS"
+    },
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "orders",
+      "failure_percentage": "0.01",
+      "invalid_records": "6",
+      "pass_percentage": "99.99",
+      "total_records": "50600",
+      "valid_records": "50594",
+      "validation_status": "COMPLETED_WITH_INVALID_RECORDS"
+    },
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "order_items",
+      "failure_percentage": "0.02",
+      "invalid_records": "26",
+      "pass_percentage": "99.98",
+      "total_records": "151688",
+      "valid_records": "151662",
+      "validation_status": "COMPLETED_WITH_INVALID_RECORDS"
+    },
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "payments",
+      "failure_percentage": "0.02",
+      "invalid_records": "11",
+      "pass_percentage": "99.98",
+      "total_records": "50600",
+      "valid_records": "50589",
+      "validation_status": "COMPLETED_WITH_INVALID_RECORDS"
+    }
+  ],
+  "rule_failures": [
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "order_items",
+      "validation_rule": "PARENT_ORDER_QUARANTINED",
+      "total_records": "151688",
+      "failed_records": "13",
+      "failure_percentage": "0.01",
+      "report_generated_at": "2026-10-19T21:23:10.716+05:30"
+    },
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "order_items",
+      "validation_rule": "INVALID_QUANTITY",
+      "total_records": "151688",
+      "failed_records": "8",
+      "failure_percentage": "0.01",
+      "report_generated_at": "2026-10-19T21:23:10.716+05:30"
+    },
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "order_items",
+      "validation_rule": "PRODUCT_NOT_FOUND",
+      "total_records": "151688",
+      "failed_records": "5",
+      "failure_percentage": "0.0",
+      "report_generated_at": "2026-10-19T21:23:10.716+05:30"
+    },
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "orders",
+      "validation_rule": "CUSTOMER_NOT_FOUND",
+      "total_records": "50600",
+      "failed_records": "6",
+      "failure_percentage": "0.01",
+      "report_generated_at": "2026-10-19T21:23:10.716+05:30"
+    },
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "payments",
+      "validation_rule": "PARENT_ORDER_QUARANTINED",
+      "total_records": "50600",
+      "failed_records": "6",
+      "failure_percentage": "0.01",
+      "report_generated_at": "2026-10-19T21:23:10.716+05:30"
+    },
+    {
+      "batch_date": "2026-07-21",
+      "dataset_name": "payments",
+      "validation_rule": "INVALID_PAYMENT_AMOUNT",
+      "total_records": "50600",
+      "failed_records": "5",
+      "failure_percentage": "0.01",
+      "report_generated_at": "2026-10-19T21:23:10.716+05:30"
+    }
+  ]
+}

@@ -22,18 +22,23 @@ def _short(text: str | None, limit: int) -> str | None:
 def get_lakehouse_run(run_id: str) -> str:
     """Get one lakehouse pipeline run: batch date, status, how it was started (start_from stage, if
     it skipped earlier stages), each stage's status and exit code, and for the failed stage the
-    exception type, message and key error lines. Always call this first when you have a run id."""
+    exception type and message, the root error (the real cause under wrapper exceptions) and key error
+    lines. Always call this first when you have a run id."""
 
     def fetch() -> dict:
         run = store.get_run(run_id)
         stages = []
         for stage in run["stages"]:
+            if stage["status"] in ("SKIPPED", "PENDING"):  # stages that never ran: name and status only
+                stages.append({"module": stage["module"], "status": stage["status"]})
+                continue
             item = {k: stage.get(k) for k in STAGE_SUMMARY_KEYS}
             if stage["status"] == "FAILED":
                 item["error_type"] = stage.get("error_type")
                 item["error_message"] = _short(stage.get("error_message"), 300)
                 item["root_error"] = _short(stage.get("root_error"), 400)
-                item["key_error_lines"] = [_short(line, 220) for line in (stage.get("key_error_lines") or [])[-4:]]
+                item["key_error_lines"] = [_short(line, 220) for line in (stage.get("key_error_lines") or [])[-4:]
+                                           if line not in (stage.get("root_error") or "")]
             stages.append(item)
         keep = ("run_id", "pipeline", "batch_date", "status", "started_at", "duration_seconds", "start_from",
                 "triggered_by", "failed_stage")

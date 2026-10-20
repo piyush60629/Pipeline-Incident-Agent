@@ -1,0 +1,72 @@
+{
+  "run_id": "run-2026-07-22-155923",
+  "pipeline": "retail_analytics_lakehouse",
+  "batch_date": "2026-07-22",
+  "status": "FAILED",
+  "started_at": "2026-10-19T15:59:23+00:00",
+  "finished_at": "2026-10-19T15:59:32+00:00",
+  "duration_seconds": 8.8,
+  "start_from": "src.gold",
+  "triggered_by": "schedule",
+  "failed_stage": "Gold layer",
+  "error_type": "FileNotFoundError",
+  "error_message": "SCD2 dimension not found: data/silver_dimensions/batch_date=2026-07-22/customers",
+  "root_error": "FileNotFoundError: SCD2 dimension not found: data/silver_dimensions/batch_date=2026-07-22/customers",
+  "stages": [
+    {
+      "name": "Gold layer",
+      "module": "src.gold",
+      "status": "FAILED",
+      "started_at": "2026-10-19T15:59:23+00:00",
+      "duration_seconds": 8.8,
+      "exit_code": 1,
+      "error_type": "FileNotFoundError",
+      "error_message": "SCD2 dimension not found: data/silver_dimensions/batch_date=2026-07-22/customers",
+      "root_error": "FileNotFoundError: SCD2 dimension not found: data/silver_dimensions/batch_date=2026-07-22/customers",
+      "key_error_lines": [
+        "FileNotFoundError: SCD2 dimension not found: data/silver_dimensions/batch_date=2026-07-22/customers"
+      ],
+      "log_tail": [
+        "Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=34423 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.js",
+        "Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=34423 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.js",
+        "WARNING: Using incubator modules: jdk.incubator.vector",
+        "Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties",
+        "Setting default log level to \"WARN\".",
+        "To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).",
+        "site-packages/pyspark/testing/utils.py:127: FutureWarning: PySpark does not yet fully support pandas >= 3.0.0. Some features may not work correctly. It is recommended to use pandas < 3.0.0 for now.",
+        "  require_minimum_pandas_version()",
+        "26/10/19 21:29:26 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable",
+        "GOLD DIMENSIONAL MODEL \u2014 BATCH DATE: 2026-07-22",
+        "Traceback (most recent call last):",
+        "  File \"<frozen runpy>\", line 198, in _run_module_as_main",
+        "  File \"<frozen runpy>\", line 88, in _run_code",
+        "  File \"src/gold/__main__.py\", line 32, in <module>",
+        "    main()",
+        "  File \"src/gold/__main__.py\", line 26, in main",
+        "    run_gold_pipeline(",
+        "  File \"src/gold/runner.py\", line 263, in run_gold_pipeline",
+        "    customers = read_scd2_dimension(",
+        "                ^^^^^^^^^^^^^^^^^^^^",
+        "  File \"src/gold/runner.py\", line 53, in read_scd2_dimension",
+        "    raise FileNotFoundError(",
+        "FileNotFoundError: SCD2 dimension not found: data/silver_dimensions/batch_date=2026-07-22/customers"
+      ]
+    },
+    {
+      "name": "Gold data quality",
+      "module": "src.gold_quality",
+      "status": "SKIPPED",
+      "started_at": null,
+      "duration_seconds": null,
+      "exit_code": null
+    },
+    {
+      "name": "Analytics and KPI layer",
+      "module": "src.analytics",
+      "status": "SKIPPED",
+      "started_at": null,
+      "duration_seconds": null,
+      "exit_code": null
+    }
+  ]
+}

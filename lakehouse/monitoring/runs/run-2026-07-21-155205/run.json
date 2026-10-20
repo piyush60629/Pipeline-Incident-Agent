@@ -1,0 +1,81 @@
+{
+  "run_id": "run-2026-07-21-155205",
+  "pipeline": "retail_analytics_lakehouse",
+  "batch_date": "2026-07-21",
+  "status": "SUCCEEDED",
+  "started_at": "2026-10-19T15:52:05+00:00",
+  "finished_at": "2026-10-19T15:57:45+00:00",
+  "duration_seconds": 340.6,
+  "start_from": null,
+  "triggered_by": "schedule",
+  "failed_stage": null,
+  "error_type": null,
+  "error_message": null,
+  "root_error": null,
+  "stages": [
+    {
+      "name": "Incremental ingestion and Bronze validation",
+      "module": "src.incremental",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:52:05+00:00",
+      "duration_seconds": 72.8,
+      "exit_code": 0
+    },
+    {
+      "name": "Record-level CDC",
+      "module": "src.incremental.run_cdc",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:53:18+00:00",
+      "duration_seconds": 42.6,
+      "exit_code": 0
+    },
+    {
+      "name": "Incremental Silver",
+      "module": "src.incremental_silver",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:54:00+00:00",
+      "duration_seconds": 41.5,
+      "exit_code": 0
+    },
+    {
+      "name": "SCD Type 2",
+      "module": "src.scd2",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:54:42+00:00",
+      "duration_seconds": 32.3,
+      "exit_code": 0
+    },
+    {
+      "name": "Fact enrichment",
+      "module": "src.fact_enrichment",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:55:14+00:00",
+      "duration_seconds": 36.7,
+      "exit_code": 0
+    },
+    {
+      "name": "Gold layer",
+      "module": "src.gold",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:55:51+00:00",
+      "duration_seconds": 40.1,
+      "exit_code": 0
+    },
+    {
+      "name": "Gold data quality",
+      "module": "src.gold_quality",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:56:31+00:00",
+      "duration_seconds": 37.8,
+      "exit_code": 0
+    },
+    {
+      "name": "Analytics and KPI layer",
+      "module": "src.analytics",
+      "status": "SUCCEEDED",
+      "started_at": "2026-10-19T15:57:09+00:00",
+      "duration_seconds": 36.7,
+      "exit_code": 0
+    }
+  ]
+}
