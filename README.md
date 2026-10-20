@@ -1,8 +1,12 @@
 # Pipeline Incident Agent
 
+**Results:** 5/5 real failures of my PySpark lakehouse diagnosed correctly (category, action and root cause) · 17-incident evaluation suite in CI · human approval before any rerun.
+
 An AI agent that investigates failed data pipeline runs the way an on-call data engineer would. It decides which systems to check, reads the evidence, finds the fix in the team's runbooks and past incidents, and writes a structured diagnosis. Reruns happen only after a human approves.
 
 Built with **LangGraph**, **LangChain**, open-weight LLMs on **Groq** (OpenAI gpt-oss-120b), **hybrid search** (BM25 + Gemini embeddings) and **Streamlit**.
+
+![Demo: the agent diagnoses a real failed lakehouse run and asks before rerunning](docs/demo.gif)
 
 **🚀 Live demo: [pipeline-incident-agent.streamlit.app](https://pipeline-incident-agent.streamlit.app/)**: choose a platform, pick a failed run, click **Diagnose**, and watch the agent investigate. When it recommends a rerun it asks you to approve first.
 

@@ -120,9 +120,13 @@ def show_event(event: dict) -> None:
 
 def show_report(report: dict) -> None:
     col1, col2, col3 = st.columns(3)
-    col1.metric("Category", report["category"].replace("_", " "))
-    col2.metric("Confidence", report["confidence"])
-    col3.metric("Recommended action", ACTION_LABELS.get(report["recommended_action"], report["recommended_action"]))
+    for column, label, value in (
+        (col1, "Category", report["category"].replace("_", " ")),
+        (col2, "Confidence", report["confidence"]),
+        (col3, "Recommended action", ACTION_LABELS.get(report["recommended_action"], report["recommended_action"])),
+    ):
+        column.caption(label)
+        column.markdown(f"#### {value}")  # wraps instead of truncating like st.metric
     st.info(f"**Root cause:** {report['root_cause']}")
 
     left, right = st.columns(2)
