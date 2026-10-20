@@ -54,12 +54,16 @@ def record(url: str, run_text: str, video_dir: Path, timeout_s: int) -> Path:
         # Follow the investigation steps as they stream in.
         page.mouse.move(VIEWPORT["width"] * 0.6, VIEWPORT["height"] * 0.6)
         done = page.get_by_text("Diagnosis ready").first
-        deadline = time.monotonic() + timeout_s
+        results = page.get_by_text("Result of ")
+        deadline, shown = time.monotonic() + timeout_s, 0
         while not done.is_visible():
             if time.monotonic() > deadline:
                 raise TimeoutError("No diagnosis within the timeout")
-            page.mouse.wheel(0, 250)
-            pause(page, 1)
+            count = results.count()
+            if count > shown:  # scroll only when a new step appears (fewer full-frame changes = smaller GIF)
+                results.nth(count - 1).scroll_into_view_if_needed()
+                shown = count
+            pause(page, 0.5)
         pause(page, 1.5)
 
         page.get_by_text("Root cause:").first.scroll_into_view_if_needed()
@@ -88,7 +92,7 @@ def to_gif(video: Path, out: Path, speed: float, width: int, fps: int) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         palette = Path(tmp) / "palette.png"
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video),
-                        "-vf", f"{filters},palettegen=max_colors=128:stats_mode=diff", str(palette)], check=True)
+                        "-vf", f"{filters},palettegen=max_colors=96:stats_mode=diff", str(palette)], check=True)
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video), "-i", str(palette),
                         "-lavfi", f"{filters} [x]; [x][1:v] paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle",
                         str(out)], check=True)
