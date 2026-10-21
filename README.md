@@ -80,19 +80,25 @@ The agent is evaluated on all 17 incidents (`eval/cases.json`): 12 synthetic Azu
 <!-- EVAL_RESULTS_START -->
 **Latest results**
 
-- Run: 2026-10-19 11:28 UTC · 12 incidents · errors: 3  
+- Run: 2026-10-21 03:31 UTC · 17 incidents · errors: 0  
 - Agent: `openai/gpt-oss-120b` via groq · judge: `qwen/qwen3.8-27b`
 
 | Metric | Score |
 |---|---|
 | Diagnosis completed | 100.0% |
-| Category accuracy | 88.9% |
-| Recommended action correct | 100.0% |
-| Evidence tool recall | 94.4% |
-| Root-cause score (LLM judge) | 88.9% |
-| Avg tool calls per incident | 3.2222 |
-| Avg seconds per incident | 35.6111 |
-| Forced to submit (budget or no tool call) | 100.0% |
+| Category accuracy | 88.2% |
+| Recommended action correct | 94.1% |
+| Evidence tool recall | 97.1% |
+| Root-cause score (LLM judge) | 94.1% |
+| Avg tool calls per incident | 3.4706 |
+| Avg seconds per incident | 32.1353 |
+| Stopped by the 6-round step budget | 0.0% |
+| Runbook search added automatically (agent skipped it) | 52.9% |
+
+| Platform | Incidents | Category | Action | Tool recall | Root cause |
+|---|---|---|---|---|---|
+| azure | 12 | 91.7% | 91.7% | 95.8% | 95.8% |
+| lakehouse | 5 | 80.0% | 100.0% | 100.0% | 90.0% |
 
 Per-incident results: `eval/results/latest.md`.
 <!-- EVAL_RESULTS_END -->

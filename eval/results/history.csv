@@ -4,3 +4,4 @@ timestamp,label,scope,provider,agent_model,judge_model,cases,errors,completion_r
 2026-10-19 11:37 UTC,smoke-20b-v3,,groq,openai/gpt-oss-20b,qwen/qwen3.8-27b,3,0,1.0,1.0,0.3333,1.0,1.0,2.6667,23.3,0.0,
 2026-10-20 02:21 UTC,lakehouse-v1,lakehouse,groq,openai/gpt-oss-120b,qwen/qwen3.8-27b,5,0,1.0,1.0,1.0,1.0,1.0,2.8,35.44,0.0,
 2026-10-20 02:27 UTC,lakehouse-v2-auto-runbook,lakehouse,groq,openai/gpt-oss-120b,qwen/qwen3.8-27b,5,0,1.0,1.0,1.0,1.0,1.0,3.4,23.3,0.0,1.0
+2026-10-21 03:31 UTC,v3-full-17,all,groq,openai/gpt-oss-120b,qwen/qwen3.8-27b,17,0,1.0,0.8824,0.9412,0.9706,0.9412,3.4706,32.1353,0.0,0.5294
