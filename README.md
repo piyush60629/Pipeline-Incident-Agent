@@ -103,6 +103,22 @@ The agent is evaluated on all 17 incidents (`eval/cases.json`): 12 synthetic Azu
 Per-incident results: `eval/results/latest.md`.
 <!-- EVAL_RESULTS_END -->
 
+### Improvement log
+
+Each row is a run of the same evaluation with the real model (gpt-oss-120b on Groq, Qwen judge). "Errors" are runs that crashed before a diagnosis.
+
+| Run | What changed | Incidents | Errors | Category | Action | Tool recall | Root cause |
+|---|---|---|---|---|---|---|---|
+| `baseline` (Oct 19) | First version: the loop ended with a `submit_diagnosis` tool | 12 Azure | 1 | 81.8% | 90.9% | 95.5% | 86.4% |
+| `v2-prompt-categories` | Clearer category rules in the prompt | 12 Azure | 3 | 88.9% | 100% | 94.4% | 88.9% |
+| `v3-full-17` (Oct 21) | Two phases (investigate, then a separate report step), retry on malformed tool calls, automatic runbook search, lakehouse platform | 12 Azure | **0** | 91.7% | 91.7% | 95.8% | 95.8% |
+| `v3-full-17` | same run | 5 lakehouse | 0 | 80.0% | 100% | 100% | 90.0% |
+
+What the numbers say:
+- **Reliability:** provider errors went from 1–3 per run to 0. Forcing a large report tool call was what broke; the separate report step removed it.
+- **Root cause quality** on the Azure incidents rose from 86% to 96%.
+- **Run-to-run variation is real:** the truncated payments file was classified correctly in both lakehouse-only runs (5/5) but as `data_quality` in this one, and the Snowflake quota case recommended a fix instead of escalating. Small evaluation sets move by one case at a time (one case is 6–8 points), so trends matter more than a single run.
+
 ## Tech stack
 
 - **Agent orchestration:** LangGraph `StateGraph` with a ReAct tool loop, conditional routing, a step budget, a separate report step, `interrupt()` for approval and an in-memory checkpointer
